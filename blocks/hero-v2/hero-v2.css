@@ -1,0 +1,166 @@
+.hero-v2-container .hero-v2-wrapper {
+  max-width: unset;
+  padding: 0;
+}
+
+.hero-v2 {
+  position: relative;
+  padding: 40px 24px 10px;
+  min-height: 300px;
+  max-width: 1200px;
+  margin: auto;
+  color: var(--background-color);
+}
+
+.hero-v2-main {
+  max-width: unset;
+  padding: 0;
+}
+
+.hero-v2-content {
+  position: relative;
+  padding: 0;
+}
+
+.hero-v2-image picture {
+  z-index: -1;
+  inset: 0;
+  object-fit: cover;
+  box-sizing: border-box;
+}
+
+.hero-v2-image img {
+  object-fit: cover;
+  border-radius: 20px;
+  width: 100%;
+}
+
+.hero-v2-body {
+  position: absolute;
+  top: 5%;
+  right: 2%;
+  left: initial;
+  width: 38%;
+  padding: 4%;
+  margin: auto;
+  display: block;
+  height: 90%;
+  box-sizing: border-box;
+  color: var(--background-color);
+  background: rgba(0, 0, 0, .1);
+  border-radius: 20px;
+}
+
+.hero-v2 p {
+  max-width: 1200px;
+  margin: 0 auto;
+  position: relative;
+}
+
+.hero-v2 h2 {
+  margin-left: auto;
+  margin-right: auto;
+  font-size: 32px;
+  font-weight: bold;
+  letter-spacing: 1px;
+  line-height: 45px;
+}
+
+.hero-v2 h3 {
+    margin-left: auto;
+    margin-right: auto;
+    font-size: 24px;
+    font-weight: bold;
+    letter-spacing: 1px;
+    line-height: 26px;
+  }     
+
+.hero-v2 .hero-v2-body p:nth-child(3) {
+  max-width: 1200px;
+  margin: 20px auto;
+  font-size: 14px;
+  font-weight: 600;
+  line-height: 18px;
+}
+
+.hero-v2 .hero-v2-body p:nth-child(4) {
+    max-width: 1200px;
+    margin: 0 auto;
+    color: var(--background-color);
+}
+
+.hero-v2 .hero-v2-body a {
+    font-size: 14px;
+    font-weight: 600;
+    line-height: 18px;
+    padding: 8px 16px;
+    border-radius: 25px;
+    background-color: var(--color-opacity-24);
+    color: var(--background-color);
+    text-transform: uppercase;
+}
+
+.hero-v2 .hero-v2-body p:nth-child(5) {
+  max-width: 1200px;
+  margin: 0 auto;
+  color: var(--background-color);
+  width: 30%;
+  position: absolute;
+  right: 8%;
+  top: 55%;
+}
+
+
+@media (min-width: 900px) {
+  .hero-v2 {
+    padding: 40px 32px 10px;
+  }
+}
+
+
+/* Style for UE Structure -start */
+.hero-v2 .hero-v2-image p:nth-child(4) {
+  max-width: 1200px;
+  margin: 0 auto;
+  font-size: 14px;
+  font-weight: 600;
+  line-height: 18px;
+  width: 30%;
+  position: absolute;
+  right: 8%;
+  top: 35%;
+}
+
+.hero-v2 .hero-v2-image p:nth-child(5) {
+    max-width: 1200px;
+    margin: 0 auto;
+    color: var(--background-color);
+    width: 30%;
+    position: absolute;
+    right: 8%;
+    top: 47%;
+}
+
+.hero-v2 .hero-v2-image p:nth-child(5) a {
+    font-size: 14px;
+    font-weight: 600;
+    line-height: 18px;
+    padding: 8px 16px;
+    border-radius: 25px;
+    background-color: var(--color-opacity-24);
+    color: var(--background-color);
+    text-transform: uppercase;
+}
+
+.hero-v2 .hero-v2-image p:nth-child(6) {
+  max-width: 1200px;
+  margin: 0 auto;
+  color: var(--background-color);
+  width: 30%;
+  position: absolute;
+  right: 8%;
+  top: 55%;
+}
+
+/* Style for UE Structure - end */
+

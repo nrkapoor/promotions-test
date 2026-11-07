@@ -1,0 +1,81 @@
+{
+  "definitions": [
+    {
+      "title": "Hero V2",
+      "id": "hero-v2",
+      "model": "hero-v2",
+      "plugins": {
+        "da": {
+          "rows": 1,
+          "columns": 1,
+          "fields": [
+            { "name": "image", "selector": "div:nth-child(1)>div:nth-child(1)>picture:nth-child(1)>img[src]" },
+            { "name": "imageAlt", "selector": "div:nth-child(1)>div:nth-child(1)>picture:nth-child(1)>img[alt]" },
+            { "name": "title", "selector": "div:nth-child(1)>div:nth-child(1)>h2:nth-child(2)" },
+            { "name": "subtitle", "selector": "div:nth-child(1)>div:nth-child(1)>h3:nth-child(3)" },
+            { "name": "description", "selector": "div:nth-child(1)>div:nth-child(1)>p:nth-child(4)" },
+            { "name": "ctaLabel", "selector": "div:nth-child(1)>div:nth-child(1)>p:nth-child(5)>a:nth-child(1)" },
+            { "name": "ctaUrl", "selector": "div:nth-child(1)>div:nth-child(1)>p:nth-child(5)>a:nth-child(1)[href]" }
+          ]
+        }
+      }
+    }
+  ],
+  "models": [
+    {
+      "id": "hero-v2",
+      "fields": [
+        {
+          "component": "reference",
+          "valueType": "string",
+          "name": "image",
+          "label": "Image",
+          "multi": false
+        },
+        {
+          "component": "text",
+          "valueType": "string",
+          "name": "imageAlt",
+          "label": "Image Alt",
+          "value": ""
+        },
+        {
+          "component": "text",
+          "name": "title",
+          "label": "Title",
+          "valueType": "string",
+          "value": ""
+        },
+        {
+          "component": "text",
+          "name": "subtitle",
+          "label": "Subtitle",
+          "valueType": "string",
+          "value": ""
+        },
+        {
+          "component": "text",
+          "name": "description",
+          "label": "Description",
+          "valueType": "string",
+          "value": ""
+        },
+        {
+          "component": "text",
+          "name": "ctaLabel",
+          "label": "CTA Label",
+          "valueType": "string",
+          "value": ""
+        },
+        {
+          "component": "text",
+          "name": "ctaUrl",
+          "label": "CTA URL",
+          "valueType": "string",
+          "value": ""
+        }
+      ]
+    }
+  ],
+  "filters": []
+}

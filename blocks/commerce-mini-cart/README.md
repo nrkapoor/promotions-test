@@ -39,12 +39,13 @@ No events are emitted by this block. -->
 
 ### Promotion Savings
 
-- `RowTotalFooter` displays exact native per-line savings and the after-promotion
-  row total excluding tax, including BOGO and discounts without item-level names.
+- Product rows do not display allocated promotion savings or after-promotion
+  totals. All promotion savings, including BOGO, are shown in the summary until
+  a structured item-versus-cart breakdown is available.
 - `PreCheckoutSection` places a named promotion breakdown after the existing
   subtotal and before checkout: one aggregate savings deduction followed by the
   server-provided subtotal after promotions, excluding tax.
-- Both sections update through slot `onChange` and hide when discounts disappear.
+- The summary updates through slot `onChange` and hides when discounts disappear.
   Labels are plain text, with each promotion on its own line; cart-wide amounts
   are never guessed as item-level allocations.
 - Shared rendering, localization and tests are documented in

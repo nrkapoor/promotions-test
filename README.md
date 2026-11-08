@@ -62,20 +62,20 @@ not require regenerating the tracked drop-in assets when their versions are unch
 
 ### Cart promotion display
 
-The cart and mini-cart use the native `total_item_discount` value already mapped
-to `CartModel.items[].discount`. Each discounted line shows its own promotion
-savings and row total after promotions, excluding tax. This also displays BOGO
-savings even when catalog price discounts and item `prices.discounts` are absent.
-Existing unit prices, tax displays, quantity controls and cart totals are unchanged.
+The cart and mini-cart show promotion savings only in their cart summaries.
+Product rows do not display Commerce's allocated `total_item_discount` or a row
+total reduced by that allocation. Commerce still allocates discounts internally;
+pricing, tax calculations, quantities and native cart totals are unchanged.
 
 The cart summary preserves line breaks in promotion labels. The mini-cart lists
 each named promotion on its own line and shows one aggregate savings amount and
 the server-provided subtotal after discounts. Labels are rendered as text, never
-HTML. Monetary totals come from Commerce, not from parsing label strings. Names
-under an individual item are shown only when Commerce provides item-level labels;
-cart-wide promotion contributions are not guessed or copied onto every item.
+HTML. Monetary totals come from Commerce, not from parsing label strings. Cart-wide
+promotion contributions are not guessed or copied onto every item. BOGO savings
+also remain in the summary until a structured breakdown can distinguish
+item-specific savings from cart-wide allocations.
 
-Optional `Global` placeholders: `CartPromotionSavings`, `CartAfterPromotions`,
+Optional `Global` placeholders: `CartPromotionSavings`,
 `CartPromotionsApplied`, and `CartSubtotalAfterPromotions` override the default
 English copy. Currency formatting uses the document language.
 

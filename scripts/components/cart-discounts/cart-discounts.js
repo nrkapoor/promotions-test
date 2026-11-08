@@ -3,19 +3,6 @@ function cents(value) {
   return Math.round((value + Number.EPSILON) * 100);
 }
 
-export function getItemSavings(item) {
-  if (!item?.discount || cents(item.discount.value) === 0) return null;
-  const discount = cents(item.discount.value);
-  const rowTotal = cents(item.rowTotal?.value);
-  if (item.discount.currency !== item.rowTotal.currency || discount > rowTotal) {
-    throw new Error('Cart item discount does not match its row total.');
-  }
-  return {
-    discount: item.discount,
-    afterDiscount: { value: (rowTotal - discount) / 100, currency: item.rowTotal.currency },
-  };
-}
-
 export function getPromotionLabels(labels = []) {
   return labels.flatMap((label) => label.split(/\r?\n|\\n/))
     .map((label) => label.trim()).filter(Boolean);
@@ -65,27 +52,6 @@ function addLabels(element, labels) {
     list.append(entry);
   });
   element.append(list);
-}
-
-export function renderItemSavings(ctx, labels = {}) {
-  const element = document.createElement('div');
-  element.className = 'cart-discounts cart-discounts--item';
-  const locale = document.documentElement.lang || 'en';
-  const update = ({ item }) => {
-    element.replaceChildren();
-    const savings = getItemSavings(item);
-    element.hidden = !savings;
-    if (!savings) return;
-    const amounts = document.createElement('dl');
-    addAmountRow(amounts, labels.CartPromotionSavings || 'Promotion savings', savings.discount, locale, true);
-    addAmountRow(amounts, labels.CartAfterPromotions || 'After promotions (excl. tax)', savings.afterDiscount, locale);
-    element.append(amounts);
-    // Item-level names are shown only when Commerce supplies item-level attribution.
-    addLabels(element, getPromotionLabels(item.discount.label));
-  };
-  ctx.appendChild(element);
-  update(ctx);
-  ctx.onChange(update);
 }
 
 export function renderCartSavings(ctx, labels = {}) {

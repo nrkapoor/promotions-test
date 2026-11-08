@@ -47,7 +47,7 @@
   height: 90%;
   box-sizing: border-box;
   color: var(--background-color);
-  background: rgba(0, 0, 0, .1);
+  background: rgb(0 0 0 / 10%);
   border-radius: 20px;
 }
 

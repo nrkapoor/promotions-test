@@ -56,6 +56,7 @@ Styles can be customized through `hero-v2.css`. The block is responsive and desi
 
 - Uses CSS variables for colors and dimensions.
 - Content overlays the hero image.
+- The content background is black at 10% opacity.
 
 ## Usage
 

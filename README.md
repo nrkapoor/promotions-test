@@ -48,6 +48,18 @@ After every `npm install` — initial setup, or any time a `@dropins/*` or `@ado
 npm run install:dropins
 ```
 
+This copies the built assets from `node_modules/@dropins` and the relevant `@adobe/*` packages into `scripts/__dropins__`, and applies the GraphQL fragment/operation overrides in `build.mjs`. Edge Delivery Services serves the copied files directly, so this step must complete before `npm start` will reflect the correct drop-in behavior.
+
+### Build checks
+
+GitHub Actions uses Node.js 24 and runs `npm ci`, followed by `npm run lint`.
+Commit `package-lock.json` with dependency changes so clean installs remain
+reproducible. If `npm ci` reports missing or inconsistent lockfile entries, repair
+the lockfile with `npm install --package-lock-only --ignore-scripts`, then verify
+`npm ci` and `npm run lint` before committing. This preserves the manifest's exact
+dependency pins and keeps lifecycle scripts disabled. A lockfile-only repair does
+not require regenerating the tracked drop-in assets when their versions are unchanged.
+
 ### Cart promotion display
 
 The cart and mini-cart use the native `total_item_discount` value already mapped
@@ -69,8 +81,6 @@ English copy. Currency formatting uses the document language.
 
 Run `npm run test:cart-discounts` for focused amount/label regressions. Changes use
 supported drop-in slots; generated `scripts/__dropins__` assets require no edits.
-
-This copies the built assets from `node_modules/@dropins` and the relevant `@adobe/*` packages into `scripts/__dropins__`, and applies the GraphQL fragment/operation overrides in `build.mjs`. Edge Delivery Services serves the copied files directly, so this step must complete before `npm start` will reflect the correct drop-in behavior.
 
 ## Staying Up to Date
 

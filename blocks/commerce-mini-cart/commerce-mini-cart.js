@@ -18,7 +18,7 @@ import '../../scripts/initializers/cart.js';
 
 import { loadCSS, readBlockConfig } from '../../scripts/aem.js';
 import { fetchPlaceholders, rootLink, getProductLink } from '../../scripts/commerce.js';
-import { renderCartSavings, renderItemSavings } from '../../scripts/components/cart-discounts/cart-discounts.js';
+import { renderCartSavings } from '../../scripts/components/cart-discounts/cart-discounts.js';
 
 export default async function decorate(block) {
   const {
@@ -171,7 +171,6 @@ export default async function decorate(block) {
     undo: undo === 'true',
 
     slots: {
-      RowTotalFooter: (ctx) => renderItemSavings(ctx, placeholders?.Global),
       PreCheckoutSection: (ctx) => renderCartSavings(ctx, placeholders?.Global),
       Thumbnail: (ctx) => {
         const { item, defaultImageProps } = ctx;

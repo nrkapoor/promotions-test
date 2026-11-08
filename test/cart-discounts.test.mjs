@@ -1,51 +1,6 @@
 import assert from 'node:assert/strict';
 import { test } from 'node:test';
-import { getCartSavings, getItemSavings, getPromotionLabels } from '../scripts/components/cart-discounts/cart-discounts.js';
-
-test('scalar item discounts show savings and a net line total without native discount labels', () => {
-  const savings = getItemSavings({
-    discount: { value: 109, currency: 'USD' },
-    rowTotal: { value: 886.99, currency: 'USD' },
-    discounted: false,
-  });
-  assert.deepEqual(savings.afterDiscount, { value: 777.99, currency: 'USD' });
-  assert.equal(savings.discount.value, 109);
-});
-
-test('each line uses only its own native amount, including BOGO savings', () => {
-  assert.equal(getItemSavings({
-    discount: { value: 64.27, currency: 'USD' },
-    rowTotal: { value: 119.98, currency: 'USD' },
-  }).afterDiscount.value, 55.71);
-  assert.equal(getItemSavings({
-    discount: { value: 5.72, currency: 'USD' },
-    rowTotal: { value: 79.99, currency: 'USD' },
-  }).afterDiscount.value, 74.27);
-});
-
-test('zero and missing discounts do not show savings', () => {
-  assert.equal(getItemSavings({}), null);
-  assert.equal(getItemSavings({ discount: { value: 0, currency: 'USD' } }), null);
-});
-
-test('a fully discounted line has a zero after-promotion total', () => {
-  assert.deepEqual(getItemSavings({
-    discount: { value: 59.99, currency: 'USD' },
-    rowTotal: { value: 59.99, currency: 'USD' },
-  }).afterDiscount, { value: 0, currency: 'USD' });
-});
-
-test('inconsistent currencies or invalid monetary amounts fail explicitly', () => {
-  assert.throws(() => getItemSavings({
-    discount: { value: 109, currency: 'USD' },
-    rowTotal: { value: 100, currency: 'USD' },
-  }), /does not match/);
-  assert.throws(() => getItemSavings({
-    discount: { value: 1, currency: 'EUR' },
-    rowTotal: { value: 100, currency: 'USD' },
-  }), /does not match/);
-  assert.throws(() => getItemSavings({ discount: { value: NaN } }), /Invalid/);
-});
+import { getCartSavings, getPromotionLabels } from '../scripts/components/cart-discounts/cart-discounts.js';
 
 test('promotion labels split actual and escaped newlines without parsing money or HTML', () => {
   assert.deepEqual(getPromotionLabels([
@@ -94,4 +49,31 @@ test('cart summary rejects mixed currencies and hides zero discounts', () => {
   assert.equal(getCartSavings({
     appliedDiscounts: [{ label: 'Inactive', amount: { value: 0, currency: 'USD' } }],
   }), null);
+});
+
+test('cart promotion totals do not change when item allocations are redistributed', () => {
+  const cart = {
+    appliedDiscounts: [{
+      label: 'Diwali Discount ($10.00)\nFixed Amount Discount ($99.00)',
+      amount: { value: 109, currency: 'USD' },
+    }],
+    subtotal: { includingDiscountOnly: { value: 777.99, currency: 'USD' } },
+    items: [{ discount: { value: 109, currency: 'USD' } }],
+  };
+  const before = getCartSavings(cart);
+  cart.items = [
+    { discount: { value: 2.12, currency: 'USD' } },
+    { discount: { value: 106.88, currency: 'USD' } },
+  ];
+  assert.deepEqual(getCartSavings(cart), before);
+  assert.deepEqual(before.labels, ['Diwali Discount ($10.00)', 'Fixed Amount Discount ($99.00)']);
+  assert.equal(before.discount.value, 109);
+});
+
+test('invalid cart discount amounts fail explicitly', () => {
+  for (const value of [NaN, Infinity, -1]) {
+    assert.throws(() => getCartSavings({
+      appliedDiscounts: [{ label: 'Invalid', amount: { value, currency: 'USD' } }],
+    }), /Invalid cart discount amount/);
+  }
 });

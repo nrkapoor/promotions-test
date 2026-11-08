@@ -48,6 +48,28 @@ After every `npm install` — initial setup, or any time a `@dropins/*` or `@ado
 npm run install:dropins
 ```
 
+### Cart promotion display
+
+The cart and mini-cart use the native `total_item_discount` value already mapped
+to `CartModel.items[].discount`. Each discounted line shows its own promotion
+savings and row total after promotions, excluding tax. This also displays BOGO
+savings even when catalog price discounts and item `prices.discounts` are absent.
+Existing unit prices, tax displays, quantity controls and cart totals are unchanged.
+
+The cart summary preserves line breaks in promotion labels. The mini-cart lists
+each named promotion on its own line and shows one aggregate savings amount and
+the server-provided subtotal after discounts. Labels are rendered as text, never
+HTML. Monetary totals come from Commerce, not from parsing label strings. Names
+under an individual item are shown only when Commerce provides item-level labels;
+cart-wide promotion contributions are not guessed or copied onto every item.
+
+Optional `Global` placeholders: `CartPromotionSavings`, `CartAfterPromotions`,
+`CartPromotionsApplied`, and `CartSubtotalAfterPromotions` override the default
+English copy. Currency formatting uses the document language.
+
+Run `npm run test:cart-discounts` for focused amount/label regressions. Changes use
+supported drop-in slots; generated `scripts/__dropins__` assets require no edits.
+
 This copies the built assets from `node_modules/@dropins` and the relevant `@adobe/*` packages into `scripts/__dropins__`, and applies the GraphQL fragment/operation overrides in `build.mjs`. Edge Delivery Services serves the copied files directly, so this step must complete before `npm start` will reflect the correct drop-in behavior.
 
 ## Staying Up to Date

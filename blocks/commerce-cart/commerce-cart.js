@@ -32,8 +32,9 @@ import createModal from '../modal/modal.js';
 import '../../scripts/initializers/cart.js';
 import '../../scripts/initializers/wishlist.js';
 
-import { readBlockConfig } from '../../scripts/aem.js';
+import { loadCSS, readBlockConfig } from '../../scripts/aem.js';
 import { fetchPlaceholders, rootLink, getProductLink } from '../../scripts/commerce.js';
+import { renderItemSavings } from '../../scripts/components/cart-discounts/cart-discounts.js';
 
 export default async function decorate(block) {
   // Configuration
@@ -51,6 +52,7 @@ export default async function decorate(block) {
   } = readBlockConfig(block);
 
   const placeholders = await fetchPlaceholders();
+  await loadCSS(new URL('../../scripts/components/cart-discounts/cart-discounts.css', import.meta.url).href);
 
   const _cart = Cart.getCartDataFromCache();
 
@@ -183,6 +185,7 @@ export default async function decorate(block) {
       enableRemoveItem: enableRemoveItem === 'true',
       undo: undo === 'true',
       slots: {
+        RowTotalFooter: (ctx) => renderItemSavings(ctx, placeholders?.Global),
         Thumbnail: (ctx) => {
           const { item, defaultImageProps } = ctx;
           const anchorWrapper = document.createElement('a');

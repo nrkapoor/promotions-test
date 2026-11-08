@@ -1,0 +1,57 @@
+:is(.commerce-cart, .commerce-mini-cart) .cart-discounts[hidden] {
+  display: none;
+}
+
+:is(.commerce-cart, .commerce-mini-cart) .cart-discounts {
+  font: var(--type-body-2-default-font);
+  overflow-wrap: anywhere;
+  margin-top: var(--spacing-xsmall);
+}
+
+:is(.commerce-cart, .commerce-mini-cart) .cart-discounts dl {
+  margin: 0;
+}
+
+:is(.commerce-cart, .commerce-mini-cart) .cart-discounts__row {
+  display: flex;
+  justify-content: space-between;
+  align-items: baseline;
+  gap: var(--spacing-small);
+  margin-block: var(--spacing-xxsmall);
+}
+
+:is(.commerce-cart, .commerce-mini-cart) .cart-discounts__row dd {
+  margin: 0;
+  font-weight: 600;
+  white-space: nowrap;
+}
+
+:is(.commerce-cart, .commerce-mini-cart) .cart-discounts__promotions {
+  list-style: none;
+  padding: 0;
+  margin: var(--spacing-xsmall) 0;
+}
+
+:is(.commerce-cart, .commerce-mini-cart) .cart-discounts__promotions li + li {
+  margin-top: var(--spacing-xxsmall);
+}
+
+:is(.commerce-cart, .commerce-mini-cart) .cart-discounts--summary {
+  border-top: var(--shape-border-width-1) solid var(--color-neutral-300);
+  padding-top: var(--spacing-small);
+}
+
+:is(.commerce-cart, .commerce-mini-cart) .cart-discounts--summary h3 {
+  font: var(--type-body-2-strong-font);
+  margin: 0;
+}
+
+.commerce-cart .cart-order-summary__discount .cart-order-summary__label {
+  white-space: pre-line;
+  overflow-wrap: anywhere;
+}
+
+.commerce-cart .cart-order-summary__discount .cart-order-summary__price {
+  align-self: flex-start;
+  white-space: nowrap;
+}

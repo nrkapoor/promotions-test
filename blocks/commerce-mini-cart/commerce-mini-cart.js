@@ -16,8 +16,9 @@ import createMiniPDP from '../../scripts/components/commerce-mini-pdp/commerce-m
 // Initializers
 import '../../scripts/initializers/cart.js';
 
-import { readBlockConfig } from '../../scripts/aem.js';
+import { loadCSS, readBlockConfig } from '../../scripts/aem.js';
 import { fetchPlaceholders, rootLink, getProductLink } from '../../scripts/commerce.js';
+import { renderCartSavings, renderItemSavings } from '../../scripts/components/cart-discounts/cart-discounts.js';
 
 export default async function decorate(block) {
   const {
@@ -30,6 +31,7 @@ export default async function decorate(block) {
 
   // Get translations for custom messages
   const placeholders = await fetchPlaceholders();
+  await loadCSS(new URL('../../scripts/components/cart-discounts/cart-discounts.css', import.meta.url).href);
 
   const MESSAGES = {
     ADDED: placeholders?.Global?.MiniCartAddedMessage,
@@ -169,6 +171,8 @@ export default async function decorate(block) {
     undo: undo === 'true',
 
     slots: {
+      RowTotalFooter: (ctx) => renderItemSavings(ctx, placeholders?.Global),
+      PreCheckoutSection: (ctx) => renderCartSavings(ctx, placeholders?.Global),
       Thumbnail: (ctx) => {
         const { item, defaultImageProps } = ctx;
         const anchorWrapper = document.createElement('a');

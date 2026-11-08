@@ -42,6 +42,19 @@ No localStorage keys are used by this block. -->
 
 ## Behavior Patterns
 
+### Promotion Savings
+
+- The supported `RowTotalFooter` slot shows each line's native promotion savings
+  and row total after promotions, excluding tax, even when `prices.discounts` is
+  null or the product has no catalog discount.
+- Savings update through slot `onChange` and disappear when the discount is zero.
+- Native item labels are shown only when supplied by Commerce; cart-wide names
+  are not assigned to individual items.
+- The order summary preserves newlines in promotion labels and deducts the
+  aggregate amount once. Existing pricing, tax and item controls are unchanged.
+- Shared rendering, localization and tests are documented in
+  [Cart promotion display](../../README.md#cart-promotion-display).
+
 ### Page Context Detection
 
 - **Empty Cart**: When cart has no items, shows empty cart message with start shopping CTA

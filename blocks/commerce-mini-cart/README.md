@@ -37,6 +37,19 @@ No events are emitted by this block. -->
 
 ## Behavior Patterns
 
+### Promotion Savings
+
+- `RowTotalFooter` displays exact native per-line savings and the after-promotion
+  row total excluding tax, including BOGO and discounts without item-level names.
+- `PreCheckoutSection` places a named promotion breakdown after the existing
+  subtotal and before checkout: one aggregate savings deduction followed by the
+  server-provided subtotal after promotions, excluding tax.
+- Both sections update through slot `onChange` and hide when discounts disappear.
+  Labels are plain text, with each promotion on its own line; cart-wide amounts
+  are never guessed as item-level allocations.
+- Shared rendering, localization and tests are documented in
+  [Cart promotion display](../../README.md#cart-promotion-display).
+
 ### Page Context Detection
 
 - **Empty Cart**: When cart has no items, shows empty cart message with start shopping CTA

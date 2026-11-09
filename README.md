@@ -62,25 +62,34 @@ not require regenerating the tracked drop-in assets when their versions are unch
 
 ### Cart promotion display
 
-The cart and mini-cart show promotion savings only in their cart summaries.
-Product rows do not display Commerce's allocated `total_item_discount` or a row
-total reduced by that allocation. Commerce still allocates discounts internally;
-pricing, tax calculations, quantities and native cart totals are unchanged.
+SKU/category-targeted promotions and BOGO appear under eligible product rows,
+with each name and exact contribution in its own row. Their after-product-promotions
+row total excludes cart-wide discounts. Untargeted names and full contributions
+appear only in cart summaries. Targeted names are not repeated there; total savings
+still includes every promotion. Native allocation, taxes and totals are unchanged.
 
-The cart summary preserves line breaks in promotion labels. The mini-cart lists
-each named promotion on its own line and shows one aggregate savings amount and
-the server-provided subtotal after discounts. Labels are rendered as text, never
-HTML. Monetary totals come from Commerce, not from parsing label strings. Cart-wide
-promotion contributions are not guessed or copied onto every item. BOGO savings
-also remain in the summary until a structured breakdown can distinguish
-item-specific savings from cart-wide allocations.
+The `promotion-display-endpoint` in `config.json` supplies a read-only, verified
+breakdown from App Builder. Requests contain only the cart ID and optional customer
+session token. The API reads Commerce and reconciles the same promotion engine with
+the native cart; the client validates the fingerprint, currencies, contribution
+totals and every item allocation. No amounts are parsed from label strings.
+Descriptions are rendered as text, never HTML.
 
-Optional `Global` placeholders: `CartPromotionSavings`,
-`CartPromotionsApplied`, and `CartSubtotalAfterPromotions` override the default
+Cart and mini-cart slots share requests. Loading, stale or unavailable metadata
+never substitutes combined native allocations for product savings. Summaries keep
+the native aggregate amount and show explicit loading/error status; checkout
+remains usable. The API currently requires base-currency quotes.
+
+Optional `Global` placeholders: `CartProductPromotions`,
+`CartAfterProductPromotions`, `CartPromotionsIncluded`,
+`CartTotalPromotionSavings`, `CartSubtotalAfterPromotions`,
+`CartPromotionDetailsLoading`, and `CartPromotionDetailsError` override the default
 English copy. Currency formatting uses the document language.
 
-Run `npm run test:cart-discounts` for focused amount/label regressions. Changes use
-supported drop-in slots; generated `scripts/__dropins__` assets require no edits.
+Run `npm run test:cart-discounts` for focused placement, freshness and conservation
+regressions, including asynchronous slot updates (Node.js 24, also run by Build).
+Changes use supported drop-in slots and native OrderSummary
+`updateLineItems`; generated `scripts/__dropins__` assets require no edits.
 
 ## Staying Up to Date
 

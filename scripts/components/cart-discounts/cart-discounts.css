@@ -27,13 +27,11 @@
 }
 
 :is(.commerce-cart, .commerce-mini-cart) .cart-discounts__promotions {
-  list-style: none;
-  padding: 0;
-  margin: var(--spacing-xsmall) 0;
+  margin-block: var(--spacing-xsmall);
 }
 
-:is(.commerce-cart, .commerce-mini-cart) .cart-discounts__promotions li + li {
-  margin-top: var(--spacing-xxsmall);
+:is(.commerce-cart, .commerce-mini-cart) .cart-discounts__promotions dt {
+  white-space: pre-line;
 }
 
 :is(.commerce-cart, .commerce-mini-cart) .cart-discounts--summary {
@@ -41,9 +39,14 @@
   padding-top: var(--spacing-small);
 }
 
-:is(.commerce-cart, .commerce-mini-cart) .cart-discounts--summary h3 {
+:is(.commerce-cart, .commerce-mini-cart) .cart-discounts h3 {
   font: var(--type-body-2-strong-font);
   margin: 0;
+}
+
+:is(.commerce-cart, .commerce-mini-cart) .cart-discounts__status {
+  font: var(--type-body-2-default-font);
+  margin-block: var(--spacing-xsmall) 0;
 }
 
 .commerce-cart .cart-order-summary__discount .cart-order-summary__label {

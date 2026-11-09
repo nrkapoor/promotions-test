@@ -1,79 +1,160 @@
 import assert from 'node:assert/strict';
 import { test } from 'node:test';
-import { getCartSavings, getPromotionLabels } from '../scripts/components/cart-discounts/cart-discounts.js';
+import {
+  cartFingerprint, getCartSavings, getItemSavings, validatePromotionDisplay,
+} from '../scripts/components/cart-discounts/cart-discounts.js';
 
-test('promotion labels split actual and escaped newlines without parsing money or HTML', () => {
-  assert.deepEqual(getPromotionLabels([
-    'Diwali Discount ($10.00)\nFixed Amount Discount ($99.00)',
-    'BOGO ($59.99)\\nOther offer ($5.00)',
-    '<img src=x onerror=alert(1)> ($1.00)',
-  ]), [
-    'Diwali Discount ($10.00)', 'Fixed Amount Discount ($99.00)',
-    'BOGO ($59.99)', 'Other offer ($5.00)',
-    '<img src=x onerror=alert(1)> ($1.00)',
-  ]);
-});
-
-test('cart summary keeps one aggregate amount and names each promotion separately', () => {
-  const summary = getCartSavings({
+const price = (value) => ({ value, currency: 'USD' });
+function fixture() {
+  const cart = {
+    id: 'displaycartidentifier123456789012',
     appliedDiscounts: [{
       label: 'Diwali Discount ($10.00)\nFixed Amount Discount ($99.00)',
-      amount: { value: 109, currency: 'USD' },
+      amount: price(109),
     }],
-    subtotal: { includingDiscountOnly: { value: 777.99, currency: 'USD' } },
-  });
-  assert.deepEqual(summary.discount, { value: 109, currency: 'USD' });
-  assert.deepEqual(summary.labels, ['Diwali Discount ($10.00)', 'Fixed Amount Discount ($99.00)']);
+    subtotal: { includingDiscountOnly: price(777.99) },
+    total: { includingTax: price(777.99) },
+    items: [{
+      uid: 'MQ==', sku: 'A', quantity: 1, price: price(886.99),
+      rowTotal: price(886.99), discount: price(109),
+    }],
+  };
+  const display = {
+    version: 1,
+    fingerprint: cartFingerprint(cart),
+    currency: 'USD',
+    total: price(109),
+    promotions: [
+      {
+        id: 'diwali', description: 'Diwali Discount', placement: 'CART', amount: price(10),
+        allocations: [{ uid: 'MQ==', amount: price(10) }],
+      },
+      {
+        id: 'fixed', description: 'Fixed Amount Discount', placement: 'ITEM', amount: price(99),
+        allocations: [{ uid: 'MQ==', amount: price(99) }],
+      },
+    ],
+  };
+  return { cart, display };
+}
+
+test('targeted promotions appear only on product rows; untargeted names appear only in the summary', () => {
+  const { cart, display } = fixture();
+  assert.equal(validatePromotionDisplay(display, cart), display);
+  const item = getItemSavings(cart.items[0], display);
+  assert.deepEqual(item.promotions.map((value) => value.description), ['Fixed Amount Discount']);
+  assert.equal(item.discount.value, 99);
+  assert.equal(item.afterDiscount.value, 787.99);
+  const summary = getCartSavings(cart, display);
+  assert.deepEqual(summary.promotions.map((value) => value.description), ['Diwali Discount']);
+  assert.equal(summary.promotions[0].amount.value, 10);
+  assert.equal(summary.discount.value, 109);
   assert.equal(summary.subtotal.value, 777.99);
 });
 
-test('separate native cart discounts are summed once, never inferred from label text', () => {
-  const summary = getCartSavings({
-    appliedDiscounts: [
-      { label: 'Offer ($999.00)', amount: { value: 10.01, currency: 'USD' } },
-      { label: 'Other offer', amount: { value: 2.02, currency: 'USD' } },
-    ],
-  });
-  assert.equal(summary.discount.value, 12.03);
-  assert.equal(getCartSavings(null), null);
-  assert.equal(getCartSavings({ appliedDiscounts: [] }), null);
+test('untargeted promotions never show their native allocations on product rows', () => {
+  const { cart, display } = fixture();
+  display.promotions[1].placement = 'CART';
+  assert.equal(getItemSavings(cart.items[0], validatePromotionDisplay(display, cart)), null);
+  assert.equal(getCartSavings(cart, display).promotions.length, 2);
 });
 
-test('cart summary rejects mixed currencies and hides zero discounts', () => {
-  assert.throws(() => getCartSavings({
-    appliedDiscounts: [
-      { label: 'First', amount: { value: 10, currency: 'USD' } },
-      { label: 'Second', amount: { value: 2, currency: 'EUR' } },
-    ],
-  }), /currencies do not match/);
-  assert.equal(getCartSavings({
-    appliedDiscounts: [{ label: 'Inactive', amount: { value: 0, currency: 'USD' } }],
-  }), null);
-});
-
-test('cart promotion totals do not change when item allocations are redistributed', () => {
-  const cart = {
-    appliedDiscounts: [{
-      label: 'Diwali Discount ($10.00)\nFixed Amount Discount ($99.00)',
-      amount: { value: 109, currency: 'USD' },
-    }],
-    subtotal: { includingDiscountOnly: { value: 777.99, currency: 'USD' } },
-    items: [{ discount: { value: 109, currency: 'USD' } }],
-  };
-  const before = getCartSavings(cart);
+test('category promotion shares remain on eligible items without exposing cart-wide shares', () => {
+  const { cart, display } = fixture();
   cart.items = [
-    { discount: { value: 2.12, currency: 'USD' } },
-    { discount: { value: 106.88, currency: 'USD' } },
+    { uid: 'MQ==', sku: 'A', quantity: 1, price: price(100), rowTotal: price(100), discount: price(42.12) },
+    { uid: 'Mg==', sku: 'B', quantity: 1, price: price(200), rowTotal: price(200), discount: price(66.88) },
   ];
-  assert.deepEqual(getCartSavings(cart), before);
-  assert.deepEqual(before.labels, ['Diwali Discount ($10.00)', 'Fixed Amount Discount ($99.00)']);
-  assert.equal(before.discount.value, 109);
+  display.fingerprint = cartFingerprint(cart);
+  display.promotions[0].allocations = [
+    { uid: 'MQ==', amount: price(2.12) }, { uid: 'Mg==', amount: price(7.88) },
+  ];
+  display.promotions[1].allocations = [
+    { uid: 'MQ==', amount: price(40) }, { uid: 'Mg==', amount: price(59) },
+  ];
+  validatePromotionDisplay(display, cart);
+  assert.equal(getItemSavings(cart.items[0], display).discount.value, 40);
+  assert.equal(getItemSavings(cart.items[1], display).discount.value, 59);
+  assert.equal(getCartSavings(cart, display).promotions[0].amount.value, 10);
+});
+
+test('BOGO displays only its item-specific amount and does not subtract a cart promotion from the row', () => {
+  const { cart, display } = fixture();
+  cart.items[0].quantity = 3;
+  cart.items[0].price = price(59.99);
+  cart.items[0].rowTotal = price(179.97);
+  cart.items[0].discount = price(69.99);
+  cart.appliedDiscounts[0].amount = price(69.99);
+  display.total = price(69.99);
+  display.fingerprint = cartFingerprint(cart);
+  display.promotions[1] = {
+    id: 'bogo', description: 'Buy 2 get 1', placement: 'ITEM', amount: price(59.99),
+    allocations: [{ uid: 'MQ==', amount: price(59.99) }],
+  };
+  validatePromotionDisplay(display, cart);
+  assert.equal(getItemSavings(cart.items[0], display).afterDiscount.value, 119.98);
+  assert.deepEqual(getCartSavings(cart, display).promotions.map((value) => value.id), ['diwali']);
+});
+
+test('stale cart data, unknown items and duplicate allocations are rejected', () => {
+  const { cart, display } = fixture();
+  const stale = structuredClone(display);
+  stale.fingerprint = 'old-cart';
+  assert.throws(() => validatePromotionDisplay(stale, cart), /do not match/);
+  const unknown = structuredClone(display);
+  unknown.promotions[1].allocations[0].uid = 'unknown';
+  assert.throws(() => validatePromotionDisplay(unknown, cart), /item allocation/);
+  const duplicate = structuredClone(display);
+  duplicate.promotions[1].allocations.push(duplicate.promotions[1].allocations[0]);
+  assert.throws(() => validatePromotionDisplay(duplicate, cart), /Invalid/);
+});
+
+test('totals, currency and per-item allocation conservation are validated against Commerce', () => {
+  for (const change of [
+    (display) => { display.total.value = 110; },
+    (display) => { display.promotions[1].amount.currency = 'EUR'; },
+    (display) => { display.promotions[1].allocations[0].amount.value = 98; },
+    (display) => { display.promotions[1].id = 'diwali'; },
+  ]) {
+    const { cart, display } = fixture();
+    change(display);
+    assert.throws(() => validatePromotionDisplay(display, cart));
+  }
+});
+
+test('loading or unavailable metadata never substitutes aggregate allocations for item savings', () => {
+  const { cart } = fixture();
+  assert.equal(getItemSavings(cart.items[0], null), null);
+  assert.deepEqual(getCartSavings(cart, null).promotions, []);
+  assert.equal(getCartSavings(cart, null).discount.value, 109);
+});
+
+test('promotion descriptions are plain strings; contribution amounts are never parsed from names', () => {
+  const { cart, display } = fixture();
+  display.promotions[0].description = '<img src=x onerror=alert(1)> ($999.00)\nSecond line';
+  validatePromotionDisplay(display, cart);
+  const promotion = getCartSavings(cart, display).promotions[0];
+  assert.equal(promotion.description, display.promotions[0].description);
+  assert.equal(promotion.amount.value, 10);
+});
+
+test('zero-discount and empty carts show no summary or item savings', () => {
+  const { cart, display } = fixture();
+  cart.appliedDiscounts = [];
+  cart.items[0].discount = price(0);
+  display.promotions = [];
+  display.total = price(0);
+  display.fingerprint = cartFingerprint(cart);
+  validatePromotionDisplay(display, cart);
+  assert.equal(getCartSavings(cart, display), null);
+  assert.equal(getItemSavings(cart.items[0], display), null);
+  assert.equal(getCartSavings(null), null);
 });
 
 test('invalid cart discount amounts fail explicitly', () => {
   for (const value of [NaN, Infinity, -1]) {
-    assert.throws(() => getCartSavings({
-      appliedDiscounts: [{ label: 'Invalid', amount: { value, currency: 'USD' } }],
-    }), /Invalid cart discount amount/);
+    const { cart } = fixture();
+    cart.appliedDiscounts[0].amount.value = value;
+    assert.throws(() => getCartSavings(cart), /Invalid cart discount amount/);
   }
 });

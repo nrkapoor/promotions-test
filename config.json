@@ -2,6 +2,7 @@
   "public": {
     "default": {
       "commerce-endpoint": "https://na1-sandbox.api.commerce.adobe.com/8g99iVfG9cqvEPrvjrqt17/graphql",
+      "promotion-display-endpoint": "https://3117813-commercepromos.adobeioruntime.net/api/v1/web/promotions/promotion-display",
       "headers": {
         "all": {
           "Store": "default"

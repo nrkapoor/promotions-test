@@ -44,13 +44,14 @@ No localStorage keys are used by this block. -->
 
 ### Promotion Savings
 
-- Promotion savings are shown in the order summary, not as allocated savings or
-  after-promotion totals under product rows.
-- This display-only policy includes BOGO until Commerce supplies a structured
-  item-versus-cart breakdown. Native discount allocation and tax handling remain
-  unchanged.
-- The order summary preserves newlines in promotion labels and deducts the
-  aggregate amount once. Existing pricing, tax and item controls are unchanged.
+- `RowTotalFooter` shows SKU/category-targeted promotions and BOGO on eligible
+  products, with separate name/amount rows and a total after product promotions
+  only. Cart-wide allocations are never displayed as product savings.
+- Native OrderSummary `updateLineItems` replaces only its discount content with
+  untargeted promotion rows and full aggregate savings. Targeted names are not
+  repeated. Native prices, tax, shipping, gifts and item controls are unchanged.
+- Verified metadata is shared with the mini-cart. Loading or failed requests
+  display an explicit summary status and preserve native totals and checkout.
 - Shared rendering, localization and tests are documented in
   [Cart promotion display](../../README.md#cart-promotion-display).
 

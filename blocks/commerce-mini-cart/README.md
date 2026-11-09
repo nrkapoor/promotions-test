@@ -39,15 +39,15 @@ No events are emitted by this block. -->
 
 ### Promotion Savings
 
-- Product rows do not display allocated promotion savings or after-promotion
-  totals. All promotion savings, including BOGO, are shown in the summary until
-  a structured item-versus-cart breakdown is available.
-- `PreCheckoutSection` places a named promotion breakdown after the existing
-  subtotal and before checkout: one aggregate savings deduction followed by the
-  server-provided subtotal after promotions, excluding tax.
-- The summary updates through slot `onChange` and hides when discounts disappear.
-  Labels are plain text, with each promotion on its own line; cart-wide amounts
-  are never guessed as item-level allocations.
+- `RowTotalFooter` shows SKU/category-targeted promotions and BOGO under eligible
+  products. Exact contributions and totals after product promotions exclude
+  cart-wide allocations.
+- `PreCheckoutSection` places untargeted promotion rows after the existing subtotal
+  and before checkout, followed by total savings across all promotions and the
+  native subtotal after promotions. Targeted names are not repeated in summaries.
+- Slots update through `onChange` and hide when discounts disappear. Shared
+  verified metadata is rendered as plain text with separate name/amount rows.
+  Loading or errors preserve native totals and display an explicit summary status.
 - Shared rendering, localization and tests are documented in
   [Cart promotion display](../../README.md#cart-promotion-display).
 

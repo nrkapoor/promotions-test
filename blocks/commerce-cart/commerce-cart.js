@@ -34,6 +34,7 @@ import '../../scripts/initializers/wishlist.js';
 
 import { loadCSS, readBlockConfig } from '../../scripts/aem.js';
 import { fetchPlaceholders, rootLink, getProductLink } from '../../scripts/commerce.js';
+import { orderSummaryPromotions, renderItemPromotions } from '../../scripts/components/cart-discounts/promotion-display.js';
 
 export default async function decorate(block) {
   // Configuration
@@ -184,6 +185,7 @@ export default async function decorate(block) {
       enableRemoveItem: enableRemoveItem === 'true',
       undo: undo === 'true',
       slots: {
+        RowTotalFooter: (ctx) => renderItemPromotions(ctx, placeholders?.Global),
         Thumbnail: (ctx) => {
           const { item, defaultImageProps } = ctx;
           const anchorWrapper = document.createElement('a');
@@ -258,6 +260,7 @@ export default async function decorate(block) {
     // Order Summary
     provider.render(OrderSummary, {
       routeCheckout: checkoutURL ? () => rootLink(checkoutURL) : undefined,
+      updateLineItems: orderSummaryPromotions(placeholders?.Global),
       slots: {
         EstimateShipping: async (ctx) => {
           if (enableEstimateShipping === 'true') {

@@ -230,7 +230,9 @@ async function loadEager(doc) {
     if (main.querySelector('.commerce-cart')) {
       loadCSS(new URL('./components/cart-discounts/cart-discounts.css', import.meta.url).href);
       loadCSS(`${window.hlx.codeBasePath}/blocks/footer/footer.css`);
-      import('../blocks/footer/footer.js').catch((error) => {
+      import('../blocks/footer/footer.js').then(({ preloadFooterContent }) => {
+        preloadFooterContent();
+      }).catch((error) => {
         console.error('Unable to preload the cart footer:', error);
       });
     }

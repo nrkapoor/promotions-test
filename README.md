@@ -91,6 +91,56 @@ regressions, including asynchronous slot updates (Node.js 24, also run by Build)
 Changes use supported drop-in slots and native OrderSummary
 `updateLineItems`; generated `scripts/__dropins__` assets require no edits.
 
+## App Builder coupon controls (gated)
+
+After the backend passes the target environment's acceptance,
+configure the optional `shopper-coupons-endpoint` key in `config.json` with the HTTPS
+`shopper-coupons` Runtime action URL. This branch targets the connected shared
+sandbox with backend status `SANDBOX_READY`: functional checkout is enabled and
+latency certification is explicitly deferred. Production still requires the
+backend's independent production readiness gate. Leave the key absent on
+environments without matching acceptance.
+Without it, cart and checkout preserve native Coupons and load no custom coupon
+client. With it, both use the same accessible app-coupon form; load/configuration
+errors show an alert instead of silently switching back to native coupon submission.
+This slot manages App Builder coupons, not simultaneous native Commerce coupons.
+
+To test, create a coupon-required discount in Promotions, save it as Draft, then
+create and activate codes in Coupons. On the cart or checkout page, enter the
+codes in **Coupon codes (comma-separated)** and choose **Apply coupons**.
+Use **Remove all coupons** to restore automatic promotions. Use sandbox/offline
+payment only. Codes must come from an active, unexpired coupon group.
+
+Apply appends one to five distinct codes, with at most one code per promotion.
+Remove removes all app coupons. Prices and discounts always come from native cart
+refresh and the verified promotion display, never client-calculated savings.
+Changing cart eligibility can leave a reserved code ineligible until the cart is
+updated or the codes are removed/reapplied.
+
+Mutations use the current reservation version and a stable UUID. Unknown network
+outcomes must be retried unchanged. After the server acknowledges a mutation,
+retrying a failed native cart refresh does not submit the mutation again; removal
+remains available to recover from failed pricing refresh. Fully fenced orders are
+never removable, even when their lease timestamp has passed. A changed customer
+must remove the previous customer's claims before applying fresh codes.
+
+Only the masked cart ID and optional shopper session token identify the cart.
+No browser-supplied prices/customer IDs are accepted; never put the server coupon
+secret or IMS credentials in storefront configuration. Codes and retry receipts
+remain in memory only, and cart/customer changes clear input and reject late
+responses. Reloading loses the local retry receipt; recover via status/removal,
+not blind application with new UUIDs.
+
+Optional `Global` placeholders: `CouponCodes`, `ApplyCoupon`, `RemoveCoupons`,
+`RetryCoupons`, `NoCoupons`, `CouponStatus`, `CartLoading`, `CouponToolsUnavailable`.
+
+Run `npm run test:cart-discounts` for transport/idempotency and placement tests.
+For browser tests, run `npx playwright install chromium` once and then
+`npm run test:coupon-ui`. These cover both slots, native-control fallback, missing
+carts, expiry, retry/removal recovery, mobile layout and text-only rendering using
+mocked backend responses. They do **not** certify native hook semantics or real
+checkout p95 latency. Both suites and lint run in CI.
+
 ## Staying Up to Date
 
 Once you fork or clone this repo, the code is yours — you are not subscribed to updates.

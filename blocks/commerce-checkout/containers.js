@@ -61,6 +61,7 @@ import {
 } from '@dropins/storefront-checkout/lib/utils.js';
 
 import { showModal, swatchImageSlot } from './utils.js';
+import { renderCouponSlot } from '../../scripts/components/cart-discounts/promotion-display.js';
 
 // External dependencies
 import {
@@ -414,11 +415,7 @@ export const renderEstimateShipping = (ctx) => {
  * @param {HTMLElement} ctx - The slot context element
  * @returns {void}
  */
-export const renderCartCoupons = (ctx) => {
-  const coupons = document.createElement('div');
-  CartProvider.render(Coupons)(coupons);
-  ctx.appendChild(coupons);
-};
+export const renderCartCoupons = (ctx) => renderCouponSlot(ctx, (element) => CartProvider.render(Coupons)(element), cartApi);
 
 /**
  * Renders gift cards for order summary slot

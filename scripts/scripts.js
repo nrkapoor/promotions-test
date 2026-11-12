@@ -227,6 +227,13 @@ async function loadEager(doc) {
       loadErrorPage(418);
     }
     document.body.classList.add('appear');
+    if (main.querySelector('.commerce-cart')) {
+      loadCSS(new URL('./components/cart-discounts/cart-discounts.css', import.meta.url).href);
+      loadCSS(`${window.hlx.codeBasePath}/blocks/footer/footer.css`);
+      import('../blocks/footer/footer.js').catch((error) => {
+        console.error('Unable to preload the cart footer:', error);
+      });
+    }
     await loadSection(main.querySelector('.section'), waitForFirstImage);
   }
 

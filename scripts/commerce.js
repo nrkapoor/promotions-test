@@ -324,6 +324,15 @@ export async function initializeCommerce() {
   // Initialize Config
   initializeConfig(await getConfigFromSession());
 
+  if (!IS_UE && !IS_DA && document.querySelector('main .commerce-checkout')
+    && !getCookie('DROPIN__CART__CART-ID') && !getCookie('auth_dropin_user_token')
+    && !sessionStorage.getItem('DROPINS_CART_ID')
+    && !sessionStorage.getItem('DROPIN__CART__CART__DATA')
+    && localStorage.getItem('DROPIN__CART__CART__AUTHENTICATED') !== 'true') {
+    window.location.href = rootLink('/cart');
+    return false;
+  }
+
   // Set Fetch GraphQL (Core)
   CORE_FETCH_GRAPHQL.setEndpoint(getConfigValue('commerce-core-endpoint') || await getConfigValue('commerce-endpoint'));
   CORE_FETCH_GRAPHQL.setFetchGraphQlHeaders((prev) => ({ ...prev, ...getHeaders('all') }));
@@ -332,7 +341,8 @@ export async function initializeCommerce() {
   CS_FETCH_GRAPHQL.setEndpoint(await commerceEndpointWithQueryParams());
   CS_FETCH_GRAPHQL.setFetchGraphQlHeaders((prev) => ({ ...prev, ...getHeaders('cs') }));
 
-  return initializeDropins();
+  await initializeDropins();
+  return true;
 }
 
 /**

@@ -5,6 +5,82 @@ import { chromium } from 'playwright';
 
 const none = { version: 0, phase: 'NONE', expiresAt: null, canRemove: false, promotions: [] };
 
+test('new guest checkout redirects before global drop-ins without bypassing existing sessions', async (t) => {
+  const browser = await chromium.launch();
+  try {
+    const fixtures = [
+      { name: 'new guest', redirect: true },
+      { name: 'existing cart cookie', cookie: 'DROPIN__CART__CART-ID=cart' },
+      { name: 'customer token', cookie: 'auth_dropin_user_token=customer' },
+      { name: 'session cart ID', session: 'DROPINS_CART_ID' },
+      { name: 'cached native cart', session: 'DROPIN__CART__CART__DATA' },
+      { name: 'authenticated marker', authenticated: true },
+      { name: 'authoring preview', preview: true },
+      { name: 'other page', otherPage: true },
+    ];
+    for (const fixture of fixtures) {
+      await t.test(fixture.name, async () => {
+        const page = await browser.newPage();
+        let initializations = 0;
+        await page.exposeFunction('recordInitialization', () => { initializations += 1; });
+        await page.addInitScript((value) => {
+          if (value.cookie) document.cookie = `${value.cookie}; path=/`;
+          if (value.session) sessionStorage.setItem(value.session, 'existing');
+          if (value.authenticated) localStorage.setItem('DROPIN__CART__CART__AUTHENTICATED', 'true');
+        }, fixture);
+        const mocks = {
+          '/lib.js': 'export const getCookie = name => document.cookie.split("; ").find(pair => pair.startsWith(`${name}=`))?.split("=")[1];',
+          '/config.js': `export const getRootPath = () => '/en';
+            export const getHeaders = () => ({});
+            export const getConfigValue = () => 'https://commerce.invalid/graphql';
+            export const initializeConfig = () => {};
+            export const getListOfRootPaths = () => [];`,
+          '/events.js': 'export const events = {};',
+          '/fetch.js': 'export class FetchGraphQL { setEndpoint() {} setFetchGraphQlHeaders() {} }',
+          '/scripts/aem.js': 'export const getMetadata = () => ""; export const readBlockConfig = () => ({});',
+          '/scripts/initializers/index.js': 'export default async () => window.recordInitialization();',
+        };
+        await page.route('https://checkout-start.invalid/**', async (route) => {
+          const { pathname } = new URL(route.request().url());
+          if (pathname === '/en/cart') {
+            await route.fulfill({ contentType: 'text/html', body: '<main>Cart</main>' });
+          } else if (pathname === '/config.json') {
+            await route.fulfill({ json: {} });
+          } else if (pathname === '/en/checkout') {
+            await route.fulfill({ contentType: 'text/html', body: `
+              <script type="importmap">{"imports":{
+                "@dropins/tools/lib.js":"/lib.js",
+                "@dropins/tools/lib/aem/configs.js":"/config.js",
+                "@dropins/tools/event-bus.js":"/events.js",
+                "@dropins/tools/fetch-graphql.js":"/fetch.js"
+              }}</script>
+              <main><div class="${fixture.otherPage ? 'other' : 'commerce-checkout'}"></div></main>
+              <script type="module">
+              import { initializeCommerce } from '/scripts/commerce.js';
+              window.completed = await initializeCommerce();
+              </script>` });
+          } else if (mocks[pathname]) {
+            await route.fulfill({ contentType: 'text/javascript', body: mocks[pathname] });
+          } else if (pathname === '/scripts/commerce.js') {
+            await route.fulfill({ contentType: 'text/javascript', body: await readFile(new URL('../scripts/commerce.js', import.meta.url), 'utf8') });
+          } else {
+            throw new Error(`Unexpected request: ${pathname}`);
+          }
+        });
+        await page.goto(`https://checkout-start.invalid/en/checkout${fixture.preview ? '?dapreview=1' : ''}`);
+        if (fixture.redirect) {
+          await page.waitForURL('https://checkout-start.invalid/en/cart');
+          assert.equal(initializations, 0);
+        } else {
+          await page.waitForFunction(() => window.completed === true);
+          assert.equal(initializations, 1);
+        }
+        await page.close();
+      });
+    }
+  } finally { await browser.close(); }
+});
+
 test('checkout loads its full renderer only after a nonempty cart or placed order', async (t) => {
   const browser = await chromium.launch();
   try {

@@ -40,6 +40,7 @@ No localStorage keys are used by this block. -->
 
 - **Checkout Flow**: Renders full checkout interface with shipping, billing, payment, and order summary
 - **Empty Cart**: Waits for cart initialization, then redirects to the cart page before downloading checkout, account, order, and payment UI modules. An already-placed order still loads the order-confirmation flow. Populated carts load the unchanged checkout renderer.
+- **New Guest**: A checkout visitor with no native cart cookie, authentication token, cached cart, or authenticated-session marker redirects immediately after store configuration, before global drop-in initialization. Any existing session follows normal authoritative cart initialization. Localized cart paths are preserved, and authoring previews do not take this shortcut.
 - **Server Errors**: When server errors occur, shows error state and hides checkout forms
 - **Out of Stock**: When items are out of stock, shows out of stock message with cart update options
 - **Order Confirmation**: After successful order placement, transitions to order confirmation view

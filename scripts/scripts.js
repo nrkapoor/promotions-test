@@ -218,7 +218,7 @@ async function loadEager(doc) {
   const main = doc.querySelector('main');
   if (main) {
     try {
-      await initializeCommerce();
+      if (await initializeCommerce() === false) return false;
       decorateMain(main);
       applyTemplates(doc);
       await loadCommerceEager();
@@ -238,6 +238,7 @@ async function loadEager(doc) {
   } catch (e) {
     // do nothing
   }
+  return true;
 }
 
 /**
@@ -274,7 +275,7 @@ function loadDelayed() {
 }
 
 async function loadPage() {
-  await loadEager(document);
+  if (await loadEager(document) === false) return;
   await loadLazy(document);
   loadDelayed();
 }

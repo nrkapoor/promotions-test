@@ -10,6 +10,9 @@ test('new guest checkout redirects before global drop-ins without bypassing exis
   try {
     const fixtures = [
       { name: 'new guest', redirect: true },
+      { name: 'empty native cookie', cookie: 'DROPIN__CART__CART-ID=', redirect: true },
+      { name: 'trailing slash', path: '/en/checkout/', redirect: true },
+      { name: 'custom checkout route', path: '/en/express' },
       { name: 'existing cart cookie', cookie: 'DROPIN__CART__CART-ID=cart' },
       { name: 'customer token', cookie: 'auth_dropin_user_token=customer' },
       { name: 'session cart ID', session: 'DROPINS_CART_ID' },
@@ -46,7 +49,7 @@ test('new guest checkout redirects before global drop-ins without bypassing exis
             await route.fulfill({ contentType: 'text/html', body: '<main>Cart</main>' });
           } else if (pathname === '/config.json') {
             await route.fulfill({ json: {} });
-          } else if (pathname === '/en/checkout') {
+          } else if (pathname === (fixture.path || '/en/checkout')) {
             await route.fulfill({ contentType: 'text/html', body: `
               <script type="importmap">{"imports":{
                 "@dropins/tools/lib.js":"/lib.js",
@@ -56,18 +59,24 @@ test('new guest checkout redirects before global drop-ins without bypassing exis
               }}</script>
               <main><div class="${fixture.otherPage ? 'other' : 'commerce-checkout'}"></div></main>
               <script type="module">
+              import { redirectNewGuestCheckout } from '/scripts/checkout-redirect.js';
               import { initializeCommerce } from '/scripts/commerce.js';
-              window.completed = await initializeCommerce();
+              if (!redirectNewGuestCheckout()) {
+                await initializeCommerce();
+                window.completed = true;
+              }
               </script>` });
           } else if (mocks[pathname]) {
             await route.fulfill({ contentType: 'text/javascript', body: mocks[pathname] });
           } else if (pathname === '/scripts/commerce.js') {
             await route.fulfill({ contentType: 'text/javascript', body: await readFile(new URL('../scripts/commerce.js', import.meta.url), 'utf8') });
+          } else if (pathname === '/scripts/checkout-redirect.js') {
+            await route.fulfill({ contentType: 'text/javascript', body: await readFile(new URL('../scripts/checkout-redirect.js', import.meta.url), 'utf8') });
           } else {
             throw new Error(`Unexpected request: ${pathname}`);
           }
         });
-        await page.goto(`https://checkout-start.invalid/en/checkout${fixture.preview ? '?dapreview=1' : ''}`);
+        await page.goto(`https://checkout-start.invalid${fixture.path || '/en/checkout'}${fixture.preview ? '?dapreview=1' : ''}`);
         if (fixture.redirect) {
           await page.waitForURL('https://checkout-start.invalid/en/cart');
           assert.equal(initializations, 0);

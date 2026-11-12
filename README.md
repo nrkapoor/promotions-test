@@ -52,7 +52,14 @@ This copies the built assets from `node_modules/@dropins` and the relevant `@ado
 
 ### Build checks
 
-GitHub Actions uses Node.js 24 and runs `npm ci`, followed by `npm run lint`.
+GitHub Actions uses Node.js 24 and runs `npm ci`, lint, cart-discount unit tests,
+and isolated coupon browser checks after installing Chromium.
+The inherited Cypress suites target the upstream Adobe demo backends; both their
+shards and aggregate checks are upstream-only. On upstream, failed or cancelled
+shards still fail the aggregate gate. This fork's coupon checks run in Build
+against synthetic responses and never place orders in the shared sandbox.
+The block README workflow has read-only source access and pull-request comment
+permission so it can report documentation requirements.
 Commit `package-lock.json` with dependency changes so clean installs remain
 reproducible. If `npm ci` reports missing or inconsistent lockfile entries, repair
 the lockfile with `npm install --package-lock-only --ignore-scripts`, then verify

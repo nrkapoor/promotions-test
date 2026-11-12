@@ -4,6 +4,83 @@ import { test } from 'node:test';
 import { chromium } from 'playwright';
 
 const none = { version: 0, phase: 'NONE', expiresAt: null, canRemove: false, promotions: [] };
+
+test('checkout loads its full renderer only after a nonempty cart or placed order', async (t) => {
+  const browser = await chromium.launch();
+  try {
+    const cases = [
+      { name: 'no cart redirects without checkout downloads', cart: null, redirect: true },
+      { name: 'empty cart redirects without checkout downloads', cart: { items: [] }, redirect: true },
+      { name: 'populated cart loads checkout', cart: { items: [{}] } },
+      { name: 'placed order preserves confirmation', cart: null, orderPlaced: true },
+      { name: 'uninitialized cart waits, then redirects', delayed: true, cart: null, redirect: true },
+      { name: 'uninitialized cart waits, then loads checkout', delayed: true, cart: { items: [{}] } },
+    ];
+    for (const fixture of cases) {
+      await t.test(fixture.name, async () => {
+        const page = await browser.newPage();
+        const downloads = [];
+        await page.route('https://checkout-ui.invalid/**', async (route) => {
+          const { pathname } = new URL(route.request().url());
+          let body;
+          let contentType = 'text/javascript';
+          if (pathname === '/checkout') {
+            contentType = 'text/html';
+            body = `<script type="importmap">{"imports":{"@dropins/tools/event-bus.js":"/events.js"}}</script>
+              <main></main><script type="module">
+              import decorate from '/blocks/commerce-checkout/commerce-checkout.js';
+              window.decoration = decorate(document.querySelector('main'));
+              </script>`;
+          } else if (pathname === '/events.js') {
+            body = `export const events = {
+              lastPayload: (name) => name === 'order/placed'
+                ? (window.fixture.orderPlaced ? {} : undefined)
+                : (window.fixture.delayed ? undefined : window.fixture.cart),
+              on: (name, callback) => {
+                window.initializeCart = callback;
+                return { off: () => { window.unsubscribed = true; } };
+              },
+            };`;
+          } else if (pathname === '/scripts/commerce.js') {
+            body = 'export const rootLink = path => path;';
+          } else if (pathname === '/blocks/commerce-checkout/commerce-checkout.js') {
+            body = await readFile(new URL('../blocks/commerce-checkout/commerce-checkout.js', import.meta.url), 'utf8');
+          } else if (pathname === '/blocks/commerce-checkout/checkout.js') {
+            downloads.push(pathname);
+            body = 'export default async block => { block.textContent = "Checkout rendered"; };';
+          } else if (pathname === '/cart') {
+            contentType = 'text/html';
+            body = '<main>Cart</main>';
+          } else {
+            throw new Error(`Unexpected request: ${pathname}`);
+          }
+          await route.fulfill({ contentType, body });
+        });
+        await page.addInitScript((value) => { window.fixture = value; }, fixture);
+        await page.goto('https://checkout-ui.invalid/checkout');
+        if (fixture.delayed) {
+          await page.waitForFunction(() => window.initializeCart);
+          assert.equal(downloads.length, 0);
+          assert.equal(await page.evaluate(() => {
+            window.initializeCart(window.fixture.cart);
+            return window.unsubscribed;
+          }), true);
+        }
+        if (fixture.redirect) {
+          await page.waitForURL('https://checkout-ui.invalid/cart');
+          assert.equal(downloads.length, 0);
+        } else {
+          await page.waitForFunction(() => document.querySelector('main').textContent === 'Checkout rendered');
+          assert.equal(downloads.length, 1);
+        }
+        await page.close();
+      });
+    }
+  } finally {
+    await browser.close();
+  }
+});
+
 const reserved = {
   version: 2, phase: 'RESERVED', expiresAt: new Date(Date.now() + 60000).toISOString(), canRemove: true,
   promotions: [{ id: 'percent', description: '<img src=x> Ten percent off' }],

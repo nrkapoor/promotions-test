@@ -34,7 +34,7 @@ import '../../scripts/initializers/wishlist.js';
 
 import { loadCSS, readBlockConfig } from '../../scripts/aem.js';
 import { fetchPlaceholders, rootLink, getProductLink } from '../../scripts/commerce.js';
-import { orderSummaryPromotions, renderItemPromotions } from '../../scripts/components/cart-discounts/promotion-display.js';
+import { orderSummaryPromotions, renderItemPromotions, renderCouponSlot } from '../../scripts/components/cart-discounts/promotion-display.js';
 
 export default async function decorate(block) {
   // Configuration
@@ -269,13 +269,12 @@ export default async function decorate(block) {
             ctx.replaceWith(wrapper);
           }
         },
-        Coupons: (ctx) => {
-          const coupons = document.createElement('div');
-
-          provider.render(Coupons)(coupons);
-
-          ctx.appendChild(coupons);
-        },
+        Coupons: (ctx) => renderCouponSlot(
+          ctx,
+          (element) => provider.render(Coupons)(element),
+          Cart,
+          placeholders?.Global,
+        ),
         GiftCards: (ctx) => {
           const giftCards = document.createElement('div');
 

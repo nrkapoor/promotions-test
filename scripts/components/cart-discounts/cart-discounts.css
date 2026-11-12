@@ -58,3 +58,37 @@
   align-self: flex-start;
   white-space: nowrap;
 }
+
+:is(.commerce-cart, .commerce-checkout) .shopper-coupons {
+  display: grid;
+  gap: var(--spacing-small);
+  margin-block: var(--spacing-medium);
+  font: var(--type-body-2-default-font);
+}
+
+:is(.commerce-cart, .commerce-checkout) .shopper-coupons label {
+  display: grid;
+  gap: var(--spacing-xsmall);
+}
+
+:is(.commerce-cart, .commerce-checkout) .shopper-coupons input {
+  box-sizing: border-box;
+  width: 100%;
+  min-width: 0;
+  padding: var(--spacing-small);
+  font: inherit;
+}
+
+:is(.commerce-cart, .commerce-checkout) .shopper-coupons button {
+  margin: 0;
+  white-space: normal;
+}
+
+:is(.commerce-cart, .commerce-checkout) .shopper-coupons :is(p, ul) {
+  margin-block: 0;
+  overflow-wrap: anywhere;
+}
+
+:is(.commerce-cart, .commerce-checkout) .shopper-coupons [role="alert"] {
+  color: var(--color-alert-800, #b40000);
+}

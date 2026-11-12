@@ -10,6 +10,26 @@ let lastRequest;
 const CACHE_MS = 5000;
 const itemBindings = new Set();
 
+export async function renderCouponSlot(ctx, renderNative, cartApi, labels) {
+  const element = document.createElement('div');
+  ctx.appendChild(element);
+  const endpoint = getConfigValue('shopper-coupons-endpoint');
+  if (!endpoint) {
+    await renderNative(element);
+    return;
+  }
+  try {
+    const { renderShopperCoupons } = await import('./shopper-coupons.js');
+    await renderShopperCoupons(element, {
+      endpoint, cartApi, labels,
+    });
+  } catch (error) {
+    element.textContent = labels?.CouponToolsUnavailable || 'Coupon tools could not load. Reload before retrying.';
+    element.setAttribute('role', 'alert');
+    console.error(JSON.stringify({ event: 'shopper_coupon_load_failed', reason: error.name }));
+  }
+}
+
 function refreshItems(cart, display) {
   itemBindings.forEach((binding) => {
     if (!binding.element.isConnected) itemBindings.delete(binding);

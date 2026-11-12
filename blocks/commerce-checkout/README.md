@@ -39,7 +39,8 @@ No localStorage keys are used by this block. -->
 ### Page Context Detection
 
 - **Checkout Flow**: Renders full checkout interface with shipping, billing, payment, and order summary
-- **Empty Cart**: When cart is empty, redirects to the cart page
+- **Empty Cart**: Waits for cart initialization, then redirects to the cart page before downloading checkout, account, order, and payment UI modules. An already-placed order still loads the order-confirmation flow. Populated carts load the unchanged checkout renderer.
+- **New Guest**: On a `/checkout` route, a visitor with no native cart cookie, authentication token, cached cart, or authenticated-session marker redirects through a small independent entry module before Commerce initialization. Any existing session follows normal authoritative cart initialization. Localized path prefixes are preserved, and authoring previews or custom checkout routes do not take this shortcut.
 - **Server Errors**: When server errors occur, shows error state and hides checkout forms
 - **Out of Stock**: When items are out of stock, shows out of stock message with cart update options
 - **Order Confirmation**: After successful order placement, transitions to order confirmation view

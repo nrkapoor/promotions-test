@@ -4,6 +4,10 @@
 
 The Commerce Cart block renders a comprehensive shopping cart interface with product management, order summary, gift options, and wishlist integration. It provides a full-featured cart experience with configurable options for item management, shipping estimation, and checkout flow.
 
+On cart pages, promotion styles and footer assets/content preload alongside the first
+section. The footer can be above the fold for an empty cart; this avoids a serial
+download chain without changing when its content is rendered.
+
 ## Integration
 
 ### Block Configuration

@@ -1,7 +1,8 @@
 import assert from 'node:assert/strict';
 import { test } from 'node:test';
 import {
-  cartFingerprint, getCartSavings, getItemSavings, validatePromotionDisplay,
+  cartFingerprint, customFeeModel, getCartFees, getCartSavings, getItemSavings,
+  validatePromotionDisplay,
 } from '../scripts/components/cart-discounts/cart-discounts.js';
 
 const price = (value) => ({ value, currency: 'USD' });
@@ -156,5 +157,31 @@ test('invalid cart discount amounts fail explicitly', () => {
     const { cart } = fixture();
     cart.appliedDiscounts[0].amount.value = value;
     assert.throws(() => getCartSavings(cart), /Invalid cart discount amount/);
+  }
+});
+
+test('native custom fees survive the model extension with currency and labels intact', () => {
+  const fees = [
+    { code: 'hazardous_packaging', label: 'Hazardous packaging', amount: price(3) },
+    { code: 'pallet_handling', label: 'Pallet handling', amount: price(8) },
+  ];
+  const { cart } = fixture();
+  const model = { ...cart, ...customFeeModel({ prices: { custom_fees: fees } }) };
+  assert.deepEqual(getCartFees(model), fees);
+  assert.equal(getCartSavings(model).discount.value, 109);
+  assert.deepEqual(customFeeModel({ prices: { custom_fees: null } }), { customFees: [] });
+  assert.deepEqual(customFeeModel({ prices: {} }), { customFees: [] });
+  assert.deepEqual(getCartFees(null), []);
+});
+
+test('malformed and duplicate native fees cannot become valid-looking display rows', () => {
+  const valid = { code: 'fee', label: 'Fee', amount: price(3) };
+  for (const fees of [
+    {}, [valid, valid], [{ ...valid, code: '' }], [{ ...valid, label: '' }],
+    [{ ...valid, amount: price(-3) }], [{ ...valid, amount: price(NaN) }],
+    [{ ...valid, amount: { value: 3, currency: 'EUR' } }],
+  ]) {
+    const { cart } = fixture();
+    assert.throws(() => getCartFees({ ...cart, customFees: fees }), /Invalid cart fee/);
   }
 });

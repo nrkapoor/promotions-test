@@ -23,7 +23,7 @@ const hooks = registerHooks({
       : nextLoad(url, context);
   },
 });
-const { renderCartSavings, renderItemPromotions } = await import(
+const { renderCartSavings, renderItemPromotions, orderSummaryPromotions } = await import(
   '../scripts/components/cart-discounts/promotion-display.js'
 );
 hooks.deregister();
@@ -38,8 +38,14 @@ class Element {
   get textContent() { return this.value + this.children.map((child) => child.textContent).join(' '); }
   set textContent(value) { this.value = value; this.children = []; }
   append(...children) { this.children.push(...children); }
+  appendChild(child) {
+    if (child.parentElement === this) return;
+    child.parentElement = this;
+    this.append(child);
+  }
   replaceChildren(...children) { this.children = children; this.value = ''; }
-  setAttribute() {}
+  attributes = {};
+  setAttribute(name, value) { this.attributes[name] = value; }
 }
 
 const money = (value) => ({ value, currency: 'USD' });
@@ -150,4 +156,90 @@ test('older successes and failures cannot overwrite current product metadata', a
   assert.match(item.children[0].textContent, /Newest product promotion/);
   assert.doesNotMatch(summary.children[0].textContent, /could not be loaded/);
   item.children[0].isConnected = false;
+});
+
+test('fee-only cart and minicart show native positive fees without a display API request', () => {
+  const model = {
+    ...cart(''), appliedDiscounts: [],
+    customFees: [{ code: 'hazardous_packaging', label: 'Hazardous packaging', amount: money(3) }],
+  };
+  state.cart = model;
+  const before = state.requests.length;
+  const mini = context(model);
+  renderCartSavings(mini);
+  assert.equal(mini.children[0].hidden, false);
+  assert.match(mini.children[0].textContent, /Hazardous packaging \+\$3\.00/);
+  assert.doesNotMatch(mini.children[0].textContent, /Total promotion savings/);
+  const summary = orderSummaryPromotions();
+  const lines = summary([{ key: 'discountsContent' }, { key: 'taxContent', content: 'tax' }]);
+  const target = new Element();
+  lines[0].content.props.ref(target);
+  assert.match(target.textContent, /Hazardous packaging \+\$3\.00/);
+  assert.equal(lines[1].content, 'tax');
+  assert.equal(state.requests.length, before);
+});
+
+test('fees update, do not duplicate on refresh, and disappear when removed', () => {
+  const feeCart = (value) => ({
+    ...cart(''), appliedDiscounts: [],
+    customFees: [{ code: 'pallet_handling', label: 'Pallet handling', amount: money(value) }],
+  });
+  const initial = feeCart(4);
+  const mini = context(initial);
+  renderCartSavings(mini);
+  const summary = orderSummaryPromotions();
+  const target = new Element();
+  const renderSummary = (model) => {
+    state.cart = model;
+    summary([{ key: 'discountsContent' }])[0].content.props.ref(target);
+  };
+  renderSummary(initial);
+  for (const value of [8, 8]) {
+    const model = feeCart(value);
+    update(mini, model);
+    renderSummary(model);
+    assert.match(mini.children[0].textContent, /Pallet handling \+\$8\.00/);
+    assert.match(target.textContent, /Pallet handling \+\$8\.00/);
+    assert.equal((target.textContent.match(/Pallet handling/g) ?? []).length, 1);
+  }
+  const removed = { ...initial, customFees: [] };
+  update(mini, removed);
+  renderSummary(removed);
+  assert.equal(mini.children[0].hidden, true);
+  assert.doesNotMatch(target.textContent, /Pallet handling/);
+});
+
+test('fee rows remain independent of discount savings and display failures', async () => {
+  const model = {
+    ...cart('Fees with discounts'),
+    customFees: [{ code: 'pallet_handling', label: 'Pallet handling', amount: money(8) }],
+  };
+  state.cart = model;
+  const summary = context(model);
+  const before = state.requests.length;
+  renderCartSavings(summary);
+  complete(before, display(model, 'Discount alongside fee'));
+  await settle();
+  assert.match(summary.children[0].textContent, /Pallet handling \+\$8\.00/);
+  assert.match(summary.children[0].textContent, /Total promotion savings \u2212\$109\.00/);
+  const updated = { ...model, id: 'fee-display-failure' };
+  update(summary, updated);
+  complete(before + 1, { error: 'Promotion details unavailable.' }, 503);
+  await settle();
+  assert.match(summary.children[0].textContent, /Pallet handling \+\$8\.00/);
+  assert.match(summary.children[0].textContent, /could not be loaded/);
+});
+
+test('invalid fee data shows an explicit error without changing cart totals', () => {
+  const model = {
+    ...cart(''), appliedDiscounts: [],
+    customFees: [{ code: 'fee', label: 'Fee', amount: { value: 3, currency: 'EUR' } }],
+  };
+  const originalTotal = structuredClone(model.total);
+  const ctx = context(model);
+  renderCartSavings(ctx);
+  assert.equal(ctx.children[0].hidden, false);
+  assert.match(ctx.children[0].textContent, /Fee details could not be displayed/);
+  assert.equal(ctx.children[0].children[0].attributes.role, 'alert');
+  assert.deepEqual(model.total, originalTotal);
 });

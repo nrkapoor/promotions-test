@@ -93,10 +93,19 @@ Optional `Global` placeholders: `CartProductPromotions`,
 `CartPromotionDetailsLoading`, and `CartPromotionDetailsError` override the default
 English copy. Currency formatting uses the document language.
 
+Custom fees are requested through the `CART_FRAGMENT` override in `build.mjs`.
+The supported `CartModel` transformer preserves native `prices.custom_fees`;
+cart and mini-cart summary slots render each label and positive amount, even
+without discounts. Fees are not added to promotion savings or recalculated into
+totals, and displaying them makes no additional API request. Null/empty fees
+remove the rows; invalid fee data shows an explicit error while totals stay unchanged.
+`CartFeesDisplayError` optionally overrides that error message.
+
 Run `npm run test:cart-discounts` for focused placement, freshness and conservation
 regressions, including asynchronous slot updates (Node.js 24, also run by Build).
 Changes use supported drop-in slots and native OrderSummary
-`updateLineItems`; generated `scripts/__dropins__` assets require no edits.
+`updateLineItems`; regenerate the copied cart fragment through the drop-in build
+tooling rather than manually editing generated assets.
 
 ## App Builder coupon controls (gated)
 

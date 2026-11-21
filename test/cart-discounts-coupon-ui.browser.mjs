@@ -5,6 +5,99 @@ import { chromium } from 'playwright';
 
 const none = { version: 0, phase: 'NONE', expiresAt: null, canRemove: false, promotions: [] };
 
+test('real cart drop-in fetches and preserves fees for cart and minicart summaries', async () => {
+  const browser = await chromium.launch();
+  try {
+    const page = await browser.newPage();
+    const errors = [];
+    page.on('pageerror', (error) => errors.push(error.message));
+    let requests = 0;
+    let fees = [
+      { code: 'hazardous_packaging', label: 'Hazardous packaging', amount: { value: 3, currency: 'USD' } },
+      { code: 'pallet_handling', label: 'Pallet handling', amount: { value: 4, currency: 'USD' } },
+    ];
+    await page.route('https://fees.invalid/**', async (route) => {
+      const { pathname } = new URL(route.request().url());
+      if (pathname === '/') {
+        await route.fulfill({
+          contentType: 'text/html',
+          body: `<html lang="en"><script type="importmap">{"imports":{
+            "@dropins/tools/":"/scripts/__dropins__/tools/",
+            "@dropins/storefront-cart/":"/scripts/__dropins__/storefront-cart/"
+          }}</script><section id="cart"></section><section id="mini"></section></html>`,
+        });
+      } else if (pathname === '/graphql') {
+        requests += 1;
+        assert.match(route.request().postDataJSON().query, /custom_fees\s*\{/);
+        await route.fulfill({ json: { data: { cart: {
+          id: 'fixture-fee-cart', itemsV2: { items: [] }, total_quantity: 0,
+          prices: {
+            grand_total: { value: 100, currency: 'USD' },
+            grand_total_excluding_tax: { value: 100, currency: 'USD' },
+            subtotal_excluding_tax: { value: 93, currency: 'USD' },
+            subtotal_including_tax: { value: 93, currency: 'USD' },
+            subtotal_with_discount_excluding_tax: { value: 93, currency: 'USD' },
+            custom_fees: fees,
+          },
+        } } } });
+      } else if (pathname.startsWith('/scripts/') && !pathname.includes('..')) {
+        await route.fulfill({
+          contentType: 'text/javascript',
+          body: await readFile(new URL(`..${pathname}`, import.meta.url), 'utf8'),
+        });
+      } else {
+        throw new Error(`Unexpected fee fixture request: ${pathname}`);
+      }
+    });
+    await page.goto('https://fees.invalid/');
+    await page.evaluate(async () => {
+      const api = await import('/scripts/__dropins__/storefront-cart/api.js');
+      const { customFeeModel } = await import('/scripts/components/cart-discounts/cart-discounts.js');
+      const { orderSummaryPromotions, renderCartSavings } = await import('/scripts/components/cart-discounts/promotion-display.js');
+      const { events } = await import('/scripts/__dropins__/tools/event-bus.js');
+      api.setEndpoint('https://fees.invalid/graphql');
+      api.config.setConfig({ models: { CartModel: { transformer: customFeeModel } } });
+      api.s.cartId = 'fixture-fee-cart';
+      const model = await api.getCartData();
+      events.emit('cart/data', model);
+      const mini = document.querySelector('#mini');
+      let onChange;
+      renderCartSavings({
+        data: model,
+        appendChild: (child) => mini.appendChild(child),
+        onChange: (callback) => { onChange = callback; },
+      });
+      const renderSummary = orderSummaryPromotions();
+      const { render } = await import('/scripts/__dropins__/tools/preact.js');
+      window.updateFees = async () => {
+        const next = await api.getCartData();
+        events.emit('cart/data', next);
+        onChange({ data: next });
+        render(renderSummary([{ key: 'discountsContent' }])[0].content, document.querySelector('#cart'));
+        return { total: next.total.includingTax.value, fees: next.customFees };
+      };
+      render(renderSummary([{ key: 'discountsContent' }])[0].content, document.querySelector('#cart'));
+    });
+    for (const selector of ['#cart', '#mini']) {
+      assert.match(await page.locator(selector).innerText(), /Hazardous packaging\s+\+\$3\.00/);
+      assert.match(await page.locator(selector).innerText(), /Pallet handling\s+\+\$4\.00/);
+    }
+    assert.equal(requests, 1);
+    fees = [{ ...fees[1], amount: { value: 8, currency: 'USD' } }];
+    assert.deepEqual(await page.evaluate(() => window.updateFees()), { total: 100, fees });
+    for (const selector of ['#cart', '#mini']) {
+      assert.match(await page.locator(selector).innerText(), /Pallet handling\s+\+\$8\.00/, await page.locator(selector).innerHTML());
+      assert.doesNotMatch(await page.locator(selector).innerText(), /Hazardous|savings/);
+    }
+    fees = null;
+    await page.evaluate(() => window.updateFees());
+    assert.equal(await page.locator('#cart').innerText(), '');
+    assert.equal(await page.locator('#mini').innerText(), '');
+    assert.equal(requests, 3);
+    assert.deepEqual(errors, []);
+  } finally { await browser.close(); }
+});
+
 test('new guest checkout redirects before global drop-ins without bypassing existing sessions', async (t) => {
   const browser = await chromium.launch();
   try {

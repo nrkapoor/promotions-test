@@ -15,6 +15,26 @@ function cartTotalDiscount(cart) {
   return { value: discounts.reduce((sum, value) => sum + value, 0) / 100, currency };
 }
 
+export function customFeeModel(data) {
+  return { customFees: data?.prices?.custom_fees ?? [] };
+}
+
+export function getCartFees(cart) {
+  const fees = cart?.customFees ?? [];
+  if (!Array.isArray(fees) || fees.length > 1000) throw new Error('Invalid cart fee response.');
+  const codes = new Set();
+  return fees.map((fee) => {
+    if (typeof fee?.code !== 'string' || !fee.code.trim() || codes.has(fee.code)
+      || typeof fee.label !== 'string' || !fee.label.trim()
+      || !Number.isFinite(fee.amount?.value) || fee.amount.value <= 0
+      || fee.amount.currency !== cart?.total?.includingTax?.currency) {
+      throw new Error('Invalid cart fee details.');
+    }
+    codes.add(fee.code);
+    return { code: fee.code, label: fee.label, amount: { ...fee.amount } };
+  });
+}
+
 export function getCartSavings(cart, display) {
   if (!cart) return null;
   const discount = cartTotalDiscount(cart);

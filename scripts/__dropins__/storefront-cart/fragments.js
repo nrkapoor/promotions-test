@@ -62,7 +62,7 @@ const e = `
   from
   to
   message
-}`, r = (`fragment GIFT_WRAPPING_FRAGMENT on GiftWrapping {
+}`, r = `fragment GIFT_WRAPPING_FRAGMENT on GiftWrapping {
   __typename
   uid
   design
@@ -73,7 +73,7 @@ const e = `
     value
     currency
   }
-}`), n = `fragment AVAILABLE_GIFT_WRAPPING_FRAGMENT on GiftWrapping {
+}`, n = `fragment AVAILABLE_GIFT_WRAPPING_FRAGMENT on GiftWrapping {
   __typename
   uid
   design
@@ -284,7 +284,7 @@ ${_}
 ${a}
 ${r}
 ${i}
-${n}`, c = `fragment CART_FRAGMENT on Cart {
+${n}`, c = (`fragment CART_FRAGMENT on Cart {
   id
   total_quantity
   is_virtual
@@ -367,6 +367,14 @@ ${n}`, c = `fragment CART_FRAGMENT on Cart {
       }
       applied_to
     }
+    custom_fees {
+      code
+      label
+      amount {
+        value
+        currency
+      }
+    }
   }
   applied_coupons {
     code
@@ -387,7 +395,7 @@ ${n}`, c = `fragment CART_FRAGMENT on Cart {
   }
 }
 ${u}
-${t}`;
+${t}`);
 export {
 t as APPLIED_GIFT_CARDS_FRAGMENT,
 n as AVAILABLE_GIFT_WRAPPING_FRAGMENT,

@@ -3,7 +3,7 @@ import { h } from '@dropins/tools/preact.js';
 import { getCookie } from '@dropins/tools/lib.js';
 import { getConfigValue } from '@dropins/tools/lib/aem/configs.js';
 import {
-  cartFingerprint, getCartSavings, getItemSavings, validatePromotionDisplay,
+  cartFingerprint, getCartFees, getCartSavings, getItemSavings, validatePromotionDisplay,
 } from './cart-discounts.js';
 
 let lastRequest;
@@ -85,7 +85,7 @@ function loadDisplay(cart) {
   return entry.promise;
 }
 
-function addAmountRow(element, label, price, savings = false) {
+function addAmountRow(element, label, price, savings = false, fee = false) {
   const row = document.createElement('div');
   row.className = 'cart-discounts__row';
   const title = document.createElement('dt');
@@ -94,7 +94,8 @@ function addAmountRow(element, label, price, savings = false) {
   const formatted = new Intl.NumberFormat(document.documentElement.lang || 'en', {
     style: 'currency', currency: price.currency,
   }).format(price.value);
-  value.textContent = `${savings ? '\u2212' : ''}${formatted}`;
+  const prefix = fee ? '+' : '';
+  value.textContent = `${savings ? '\u2212' : prefix}${formatted}`;
   row.append(title, value);
   element.append(row);
 }
@@ -115,7 +116,27 @@ function summaryRenderer(labels = {}, showSubtotal = true) {
   const render = (cart, display, state) => {
     element.replaceChildren();
     const savings = getCartSavings(cart, display);
-    element.hidden = !savings;
+    let fees = [];
+    let feeError = false;
+    try {
+      fees = getCartFees(cart);
+    } catch (error) {
+      feeError = true;
+      console.error(JSON.stringify({ event: 'cart_fee_display_failed', reason: error.message }));
+    }
+    element.hidden = !savings && !fees.length && !feeError;
+    if (fees.length) {
+      const rows = document.createElement('dl');
+      fees.forEach(({ label, amount }) => addAmountRow(rows, label, amount, false, true));
+      element.append(rows);
+    }
+    if (feeError) {
+      const message = document.createElement('p');
+      message.className = 'cart-discounts__status';
+      message.setAttribute('role', 'alert');
+      message.textContent = labels.CartFeesDisplayError || 'Fee details could not be displayed. Cart totals are unchanged. Reload before retrying.';
+      element.append(message);
+    }
     if (!savings) return;
     if (savings.promotions.length) {
       const heading = document.createElement('h3');

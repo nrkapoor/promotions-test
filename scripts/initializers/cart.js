@@ -2,6 +2,7 @@ import { initializers } from '@dropins/tools/initializer.js';
 import { initialize, setEndpoint } from '@dropins/storefront-cart/api.js';
 import { initializeDropin } from './index.js';
 import { CORE_FETCH_GRAPHQL, fetchPlaceholders } from '../commerce.js';
+import { customFeeModel } from '../components/cart-discounts/cart-discounts.js';
 
 await initializeDropin(async () => {
   // Set Fetch GraphQL (Core)
@@ -17,5 +18,8 @@ await initializeDropin(async () => {
   };
 
   // Initialize cart
-  return initializers.mountImmediately(initialize, { langDefinitions });
+  return initializers.mountImmediately(initialize, {
+    langDefinitions,
+    models: { CartModel: { transformer: customFeeModel } },
+  });
 })();

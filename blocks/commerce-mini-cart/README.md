@@ -39,15 +39,14 @@ No events are emitted by this block. -->
 
 ### Promotion Savings
 
-- `RowTotalFooter` shows SKU/category-targeted promotions and BOGO under eligible
-  products. Exact contributions and totals after product promotions exclude
-  cart-wide allocations.
-- `PreCheckoutSection` places untargeted promotion rows after the existing subtotal
-  and before checkout, followed by total savings across all promotions and the
-  native subtotal after promotions. Targeted names are not repeated in summaries.
-- Slots update through `onChange` and hide when discounts disappear. Shared
-  verified metadata is rendered as plain text with separate name/amount rows.
-  Loading or errors preserve native totals and display an explicit summary status.
+- `RowTotalFooter` shows the native item discount and the row total after
+  promotions under each discounted product.
+- `PreCheckoutSection` places applied promotion rows (from the native discount
+  label) after the existing subtotal and before checkout, followed by total
+  savings and the native subtotal after promotions.
+- Slots update through `onChange` and hide when discounts disappear. Content is
+  rendered as plain text from native cart data, with no extra request. Errors
+  preserve native totals and display an explicit summary status.
 - Shared rendering, localization and tests are documented in
   [Cart promotion display](../../README.md#cart-promotion-display).
 

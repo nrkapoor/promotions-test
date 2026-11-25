@@ -28,10 +28,8 @@
 
 :is(.commerce-cart, .commerce-mini-cart) .cart-discounts__promotions {
   margin-block: var(--spacing-xsmall);
-}
-
-:is(.commerce-cart, .commerce-mini-cart) .cart-discounts__promotions dt {
-  white-space: pre-line;
+  padding-inline-start: var(--spacing-medium);
+  font: var(--type-body-2-default-font);
 }
 
 :is(.commerce-cart, .commerce-mini-cart) .cart-discounts--summary {

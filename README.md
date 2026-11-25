@@ -69,29 +69,25 @@ not require regenerating the tracked drop-in assets when their versions are unch
 
 ### Cart promotion display
 
-SKU/category-targeted promotions and BOGO appear under eligible product rows,
-with each name and exact contribution in its own row. Their after-product-promotions
-row total excludes cart-wide discounts. Untargeted names and full contributions
-appear only in cart summaries. Targeted names are not repeated there; total savings
-still includes every promotion. Native allocation, taxes and totals are unchanged.
+Promotion savings come only from the native cart. The App Builder checkout
+webhook applies promotions inside Commerce, so the storefront makes no promotion
+request of its own; the only App Builder call is the shopper coupon endpoint.
 
-The `promotion-display-endpoint` in `config.json` supplies a read-only, verified
-breakdown from App Builder. Requests contain only the cart ID and optional customer
-session token. The API reads Commerce and reconciles the same promotion engine with
-the native cart; the client validates the fingerprint, currencies, contribution
-totals and every item allocation. No amounts are parsed from label strings.
-Descriptions are rendered as text, never HTML.
+- Product rows show the native item discount ("Promotion savings") and the row
+  total after promotions, excluding tax. Commerce does not expose per-item
+  promotion names, so rows show the amount only.
+- Cart summaries list each applied promotion from the native discount label (one
+  line per promotion), then total savings and the native subtotal after promotions.
+  Labels are rendered as text, never HTML, and no amounts are recalculated.
 
-Cart and mini-cart slots share requests. Loading, stale or unavailable metadata
-never substitutes combined native allocations for product savings. Summaries keep
-the native aggregate amount and show explicit loading/error status; checkout
-remains usable. The API currently requires base-currency quotes.
+Native allocation, taxes and totals are unchanged. Invalid savings data shows an
+explicit error while totals and checkout stay usable.
 
-Optional `Global` placeholders: `CartProductPromotions`,
+Optional `Global` placeholders: `CartProductPromotionSavings`,
 `CartAfterProductPromotions`, `CartPromotionsIncluded`,
-`CartTotalPromotionSavings`, `CartSubtotalAfterPromotions`,
-`CartPromotionDetailsLoading`, and `CartPromotionDetailsError` override the default
-English copy. Currency formatting uses the document language.
+`CartTotalPromotionSavings`, `CartSubtotalAfterPromotions` and
+`CartSavingsDisplayError` override the default English copy. Currency formatting
+uses the document language.
 
 Custom fees are requested through the `CART_FRAGMENT` override in `build.mjs`.
 The supported `CartModel` transformer preserves native `prices.custom_fees`;

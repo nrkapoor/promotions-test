@@ -48,14 +48,13 @@ No localStorage keys are used by this block. -->
 
 ### Promotion Savings
 
-- `RowTotalFooter` shows SKU/category-targeted promotions and BOGO on eligible
-  products, with separate name/amount rows and a total after product promotions
-  only. Cart-wide allocations are never displayed as product savings.
+- `RowTotalFooter` shows the native item discount and the row total after
+  promotions. No promotion request is made; the checkout webhook sets the amounts.
 - Native OrderSummary `updateLineItems` replaces only its discount content with
-  untargeted promotion rows and full aggregate savings. Targeted names are not
-  repeated. Native prices, tax, shipping, gifts and item controls are unchanged.
-- Verified metadata is shared with the mini-cart. Loading or failed requests
-  display an explicit summary status and preserve native totals and checkout.
+  one row per applied promotion (from the native discount label) and total
+  savings. Native prices, tax, shipping, gifts and item controls are unchanged.
+- Invalid savings data displays an explicit summary error and preserves native
+  totals and checkout.
 - Shared rendering, localization and tests are documented in
   [Cart promotion display](../../README.md#cart-promotion-display).
 

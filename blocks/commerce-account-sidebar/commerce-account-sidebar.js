@@ -1,7 +1,7 @@
 import { Icon, provider as UI } from '@dropins/tools/components.js';
 import { render as accountRenderer } from '@dropins/storefront-account/render.js';
 import { loadFragment } from '../fragment/fragment.js';
-import { CUSTOMER_ORDERS_PATH, rootLink } from '../../scripts/commerce.js';
+import { CUSTOMER_ORDERS_PATH, CUSTOMER_SUBSCRIPTIONS_PATH, rootLink } from '../../scripts/commerce.js';
 
 export default async function decorate(block) {
   const fragment = await loadFragment('/customer/sidebar-fragment');
@@ -47,6 +47,22 @@ export default async function decorate(block) {
   sidebarItems.forEach((el) => {
     block.appendChild(el);
   });
+
+  const hasSubscriptionsLink = sidebarItems.some(
+    (el) => el.getAttribute('href') === rootLink(CUSTOMER_SUBSCRIPTIONS_PATH),
+  );
+  if (!hasSubscriptionsLink) {
+    const subLink = document.createElement('a');
+    subLink.classList.add('commerce-account-sidebar-item');
+    subLink.href = rootLink(CUSTOMER_SUBSCRIPTIONS_PATH);
+    if (window.location.href.includes(CUSTOMER_SUBSCRIPTIONS_PATH)) {
+      subLink.classList.add('commerce-account-sidebar-item-active');
+    }
+    subLink.appendChild(createMenuItemIcon('Calendar'));
+    subLink.appendChild(createMenuItemContent('Subscriptions', 'Manage recurring orders'));
+    subLink.appendChild(createMenuItemArrow());
+    block.appendChild(subLink);
+  }
 }
 
 function createMenuItemIcon(iconSource) {

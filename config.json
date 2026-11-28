@@ -3,6 +3,8 @@
     "default": {
       "commerce-endpoint": "https://na1-sandbox.api.commerce.adobe.com/8g99iVfG9cqvEPrvjrqt17/graphql",
       "shopper-coupons-endpoint": "https://3117813-commercepromos.adobeioruntime.net/api/v1/web/promotions/shopper-coupons",
+      "storefront-plans-endpoint": "https://3117813-commercesubs.adobeioruntime.net/api/v1/web/subscriptions/storefront-plans",
+      "subscriber-portal-endpoint": "https://3117813-commercesubs.adobeioruntime.net/api/v1/web/subscriptions/subscriber-portal",
       "headers": {
         "all": {
           "Store": "default"

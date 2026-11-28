@@ -1,0 +1,93 @@
+.commerce-subscriptions {
+  padding: var(--spacing-medium, 16px) 0;
+}
+
+.sub-portal__header h2 {
+  margin: 0 0 16px;
+}
+
+.sub-portal__alert {
+  padding: 12px 16px;
+  border-radius: 6px;
+  margin-bottom: 16px;
+}
+
+.sub-portal__alert--error {
+  background: #fdecea;
+  color: #b71c1c;
+}
+
+.sub-portal__alert--success {
+  background: #edf7ed;
+  color: #1b5e20;
+}
+
+.sub-portal__list {
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+}
+
+.sub-portal__card {
+  border: 1px solid var(--color-neutral-300, #d4d4d4);
+  border-radius: 8px;
+  padding: 16px;
+}
+
+.sub-portal__card-top {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 12px;
+}
+
+.sub-portal__card-top h3 {
+  margin: 0;
+}
+
+.sub-portal__badge {
+  padding: 2px 10px;
+  border-radius: 999px;
+  font-size: 12px;
+  font-weight: 600;
+  background: var(--color-neutral-200, #eee);
+}
+
+.sub-portal__badge--active {
+  background: #e6f4ea;
+  color: #137333;
+}
+
+.sub-portal__badge--past_due {
+  background: #fce8e6;
+  color: #c5221f;
+}
+
+.sub-portal__meta {
+  margin: 8px 0;
+  font-size: 14px;
+  color: var(--color-neutral-600, #555);
+}
+
+.sub-portal__items {
+  margin: 8px 0 12px;
+  padding-left: 20px;
+}
+
+.sub-portal__actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+
+.sub-portal__deflection {
+  margin-top: 12px;
+  padding: 12px;
+  border-radius: 6px;
+  background: var(--color-neutral-100, #f7f7f7);
+}
+
+.sub-portal__deflection p {
+  margin: 0 0 8px;
+  font-weight: 600;
+}

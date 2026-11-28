@@ -15,6 +15,18 @@ overrideGQLOperations([
           }
         }
       }`,
+      `fragment CART_ITEM_FRAGMENT on CartItemInterface {
+        ... on SimpleCartItem {
+          customizable_options {
+            customizable_option_uid
+            label
+            values {
+              label
+              value
+            }
+          }
+        }
+      }`,
     ],
   },
   {
@@ -22,10 +34,14 @@ overrideGQLOperations([
     skipFragments: ['DOWNLOADABLE_ORDER_ITEMS_FRAGMENT'],
     operations: [],
   },
-  // {
-  //   npm: '@dropins/storefront-checkout',
-  //   operations: [],
-  // },
+  {
+    npm: '@dropins/storefront-checkout',
+    operations: [
+      `fragment CHECKOUT_DATA_FRAGMENT on Cart {
+        id
+      }`,
+    ],
+  },
   // {
   //   npm: '@dropins/storefront-pdp',
   //   operations: [

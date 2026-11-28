@@ -204,6 +204,17 @@ export default async function decorate(block) {
         },
 
         Footer: (ctx) => {
+          const subOption = ctx.item?.customizable_options?.find(
+            (opt) => opt.label === 'subscription_plan_id',
+          );
+          if (subOption) {
+            const subBadge = document.createElement('div');
+            subBadge.className = 'sub-cart-badge';
+            const planLabel = subOption.values?.[0]?.label || subOption.values?.[0]?.value || 'Subscription';
+            subBadge.textContent = `Subscribe & Save (${planLabel})`;
+            ctx.appendChild(subBadge);
+          }
+
           // Edit Link
           if (ctx.item?.itemType === 'ConfigurableCartItem' && enableUpdatingProduct === 'true') {
             const editLink = document.createElement('div');

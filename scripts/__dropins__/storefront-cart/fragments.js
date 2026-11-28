@@ -85,7 +85,7 @@ const e = `
     currency
     value
   }
-}`, u = `fragment CART_ITEM_FRAGMENT on CartItemInterface {
+}`, u = (`fragment CART_ITEM_FRAGMENT on CartItemInterface {
   __typename
   uid
   quantity
@@ -202,6 +202,12 @@ const e = `
     }
     customizable_options {
       ...CUSTOMIZABLE_OPTIONS_FRAGMENT
+      customizable_option_uid
+      label
+      values {
+        label
+        value
+      }
     }
   }
   ... on ConfigurableCartItem {
@@ -284,7 +290,7 @@ ${_}
 ${a}
 ${r}
 ${i}
-${n}`, c = (`fragment CART_FRAGMENT on Cart {
+${n}`), c = `fragment CART_FRAGMENT on Cart {
   id
   total_quantity
   is_virtual
@@ -395,7 +401,7 @@ ${n}`, c = (`fragment CART_FRAGMENT on Cart {
   }
 }
 ${u}
-${t}`);
+${t}`;
 export {
 t as APPLIED_GIFT_CARDS_FRAGMENT,
 n as AVAILABLE_GIFT_WRAPPING_FRAGMENT,

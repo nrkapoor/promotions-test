@@ -37,6 +37,7 @@ import {
 import { IMAGES_SIZES } from '../../scripts/initializers/pdp.js';
 import '../../scripts/initializers/cart.js';
 import '../../scripts/initializers/wishlist.js';
+import { renderPdpSubscriptionWidget } from '../../scripts/subscriptions.js';
 
 /**
  * Checks if the page has prerendered product JSON-LD data
@@ -97,6 +98,7 @@ export default async function decorate(block) {
 
   // State to track if the current product/variant is out of stock
   let isOutOfStock = false;
+  let selectedSubscriptionPlanId = null;
 
   // Layout
   const fragment = document.createRange().createContextualFragment(`
@@ -114,6 +116,7 @@ export default async function decorate(block) {
         <div class="product-details__configuration">
           <div class="product-details__options"></div>
           <div class="product-details__quantity"></div>
+          <div class="product-details__subscriptions"></div>
           <div class="product-details__buttons">
             <div class="product-details__buttons__add-to-cart"></div>
             <div class="product-details__buttons__add-to-wishlist"></div>
@@ -134,6 +137,7 @@ export default async function decorate(block) {
   const $shortDescription = fragment.querySelector('.product-details__short-description');
   const $options = fragment.querySelector('.product-details__options');
   const $quantity = fragment.querySelector('.product-details__quantity');
+  const $subscriptions = fragment.querySelector('.product-details__subscriptions');
   const $giftCardOptions = fragment.querySelector('.product-details__gift-card-options');
   const $addToCart = fragment.querySelector('.product-details__buttons__add-to-cart');
   const $wishlistToggleBtn = fragment.querySelector('.product-details__buttons__add-to-wishlist');
@@ -145,6 +149,12 @@ export default async function decorate(block) {
   const $attributes = fragment.querySelector('.product-details__attributes');
 
   block.replaceChildren(fragment);
+
+  if (product?.sku && $subscriptions) {
+    renderPdpSubscriptionWidget($subscriptions, product.sku, (planId) => {
+      selectedSubscriptionPlanId = planId;
+    });
+  }
 
   const gallerySlots = {
     CarouselThumbnail: (ctx) => {
@@ -306,7 +316,14 @@ export default async function decorate(block) {
           const { addProductsToCart } = await import(
             '@dropins/storefront-cart/api.js'
           );
-          await addProductsToCart([{ ...values }]);
+          const itemInput = { ...values };
+          if (selectedSubscriptionPlanId) {
+            itemInput.customOptions = [
+              ...(Array.isArray(itemInput.customOptions) ? itemInput.customOptions : []),
+              { code: 'subscription_plan_id', value: selectedSubscriptionPlanId },
+            ];
+          }
+          await addProductsToCart([itemInput]);
         }
 
         // reset any previous alerts if successful

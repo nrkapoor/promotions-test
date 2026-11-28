@@ -72,9 +72,19 @@ export async function callSubscriberPortal(query, variables = {}) {
   return json.data;
 }
 
-export function renderPdpSubscriptionWidget(container, sku, onSelectPlan) {
+export function isProductSubscribable(product) {
+  const attrs = product?.attributes;
+  if (!Array.isArray(attrs)) return null;
+  const attr = attrs.find((a) => a?.name === 'sub_is_subscribable');
+  if (!attr) return null;
+  const val = String(attr.value ?? '').trim().toLowerCase();
+  return val === '1' || val === 'true' || val === 'yes';
+}
+
+export function renderPdpSubscriptionWidget(container, initialProduct, onSelectPlan) {
   let selectedPlanId = null;
   let plans = [];
+  let currentSku = initialProduct?.sku || '';
 
   const wrapper = document.createElement('div');
   wrapper.className = 'sub-pdp-widget';
@@ -106,7 +116,7 @@ export function renderPdpSubscriptionWidget(container, sku, onSelectPlan) {
       oneTimeLabel.className = `sub-pdp-option ${selectedPlanId === null ? 'is-selected' : ''}`;
       const radio = document.createElement('input');
       radio.type = 'radio';
-      radio.name = `sub-plan-${sku}`;
+      radio.name = `sub-plan-${currentSku}`;
       radio.checked = selectedPlanId === null;
       radio.addEventListener('change', () => {
         selectedPlanId = null;
@@ -124,7 +134,7 @@ export function renderPdpSubscriptionWidget(container, sku, onSelectPlan) {
       label.className = `sub-pdp-option ${selectedPlanId === plan.id ? 'is-selected' : ''}`;
       const radio = document.createElement('input');
       radio.type = 'radio';
-      radio.name = `sub-plan-${sku}`;
+      radio.name = `sub-plan-${currentSku}`;
       radio.checked = selectedPlanId === plan.id;
       radio.addEventListener('change', () => {
         selectedPlanId = plan.id;
@@ -132,7 +142,6 @@ export function renderPdpSubscriptionWidget(container, sku, onSelectPlan) {
         render();
       });
       const text = document.createElement('span');
-      text.innerHTML = '';
       const strong = document.createElement('strong');
       strong.textContent = plan.name;
       const small = document.createElement('small');
@@ -143,17 +152,37 @@ export function renderPdpSubscriptionWidget(container, sku, onSelectPlan) {
     });
   };
 
-  fetchPlansForSkus([sku])
-    .then((res) => {
-      plans = res.find((entry) => entry.sku === sku)?.plans ?? [];
-      render();
-    })
-    .catch(() => {
+  const loadForProduct = (product) => {
+    const sku = product?.sku;
+    if (!sku) return;
+    currentSku = sku;
+    const subscribableAttr = isProductSubscribable(product);
+    if (subscribableAttr === false) {
       plans = [];
+      selectedPlanId = null;
+      onSelectPlan(null);
       render();
-    });
+      return;
+    }
+
+    fetchPlansForSkus([sku])
+      .then((res) => {
+        if (currentSku !== sku) return;
+        plans = res.find((entry) => entry.sku === sku)?.plans ?? [];
+        render();
+      })
+      .catch(() => {
+        plans = [];
+        render();
+      });
+  };
+
+  if (initialProduct?.sku) {
+    loadForProduct(initialProduct);
+  }
 
   return {
+    updateProduct: loadForProduct,
     getSelectedPlanId: () => selectedPlanId,
   };
 }

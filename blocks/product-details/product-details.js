@@ -150,10 +150,13 @@ export default async function decorate(block) {
 
   block.replaceChildren(fragment);
 
-  if (product?.sku && $subscriptions) {
-    renderPdpSubscriptionWidget($subscriptions, product.sku, (planId) => {
+  if ($subscriptions) {
+    const subWidget = renderPdpSubscriptionWidget($subscriptions, product, (planId) => {
       selectedSubscriptionPlanId = planId;
     });
+    events.on('pdp/data', (data) => {
+      if (data?.sku) subWidget.updateProduct(data);
+    }, { eager: true });
   }
 
   const gallerySlots = {

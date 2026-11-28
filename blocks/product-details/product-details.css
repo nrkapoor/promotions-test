@@ -39,11 +39,15 @@
   font-weight: 600;
 }
 
+.product-details__subscriptions {
+  grid-column: 1 / -1;
+}
+
 .sub-pdp-widget {
   display: flex;
   flex-direction: column;
   gap: 10px;
-  margin: 16px 0;
+  margin: 8px 0;
 }
 
 .sub-pdp-widget[hidden] {

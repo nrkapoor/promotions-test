@@ -35,7 +35,7 @@ import '../../scripts/initializers/wishlist.js';
 import { loadCSS, readBlockConfig } from '../../scripts/aem.js';
 import { fetchPlaceholders, rootLink, getProductLink } from '../../scripts/commerce.js';
 import { orderSummaryPromotions, renderItemPromotions, renderCouponSlot } from '../../scripts/components/cart-discounts/promotion-display.js';
-import { renderCartItemSubscriptionSlot } from '../../scripts/subscriptions.js';
+import { renderCartItemSubscriptionSlot, renderCartSubscriptionSummary } from '../../scripts/subscriptions.js';
 
 export default async function decorate(block) {
   // Configuration
@@ -70,6 +70,7 @@ export default async function decorate(block) {
       </div>
       <div class="cart__right-column">
         <div class="cart__order-summary"></div>
+        <div class="cart__subscription-summary"></div>
         <div class="cart__gift-options"></div>
       </div>
     </div>
@@ -81,6 +82,7 @@ export default async function decorate(block) {
   const $notification = fragment.querySelector('.cart__notification');
   const $list = fragment.querySelector('.cart__list');
   const $summary = fragment.querySelector('.cart__order-summary');
+  const $subSummary = fragment.querySelector('.cart__subscription-summary');
   const $emptyCart = fragment.querySelector('.cart__empty-cart');
   const $giftOptions = fragment.querySelector('.cart__gift-options');
   const $rightColumn = fragment.querySelector('.cart__right-column');
@@ -298,12 +300,15 @@ export default async function decorate(block) {
     })($giftOptions),
   ]);
 
+  const subSummaryCtrl = $subSummary ? renderCartSubscriptionSummary($subSummary) : null;
+
   let cartViewEventPublished = false;
   // Events
   events.on(
     'cart/data',
     (cartData) => {
       toggleEmptyCart(isCartEmpty(cartData));
+      subSummaryCtrl?.update(cartData);
 
       const isEmpty = !cartData || cartData.totalQuantity < 1;
       $giftOptions.style.display = isEmpty ? 'none' : '';

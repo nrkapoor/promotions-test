@@ -111,21 +111,28 @@ export function getCartSubscriptionSelection(sku) {
 }
 
 function extractUnitPrice(product) {
-  const pricesFinal = product?.prices?.final?.amount;
-  if (typeof pricesFinal === 'number') return pricesFinal;
-  if (typeof pricesFinal?.value === 'number') return pricesFinal.value;
-  const simple = product?.price?.final?.amount?.value;
-  if (typeof simple === 'number') return simple;
-  const minPrice = product?.priceRange?.minimum?.final?.amount?.value;
-  if (typeof minPrice === 'number') return minPrice;
+  const candidates = [
+    product?.prices?.final?.amount,
+    product?.prices?.final?.amount?.value,
+    product?.price?.final?.amount?.value,
+    product?.price?.final?.amount,
+    product?.priceRange?.minimum?.final?.amount?.value,
+    product?.priceRange?.minimum?.final?.amount,
+  ];
+  const numeric = candidates.find((v) => typeof v === 'number' && Number.isFinite(v));
+  if (typeof numeric === 'number') return numeric;
   const domPrice = document.querySelector('.product-details__price')?.textContent;
   const parsed = domPrice ? Number(domPrice.replace(/[^0-9.]/g, '')) : NaN;
   return Number.isFinite(parsed) && parsed > 0 ? parsed : null;
 }
 
-function parsePercentDiscount(summary) {
-  const match = String(summary || '').match(/Save\s+(\d+(?:\.\d+)?)%/i);
-  return match ? Number(match[1]) : 0;
+function parseCycleOneDiscount(summary) {
+  const text = String(summary || '');
+  if (/^(First cycle|Cycles \d+–\d+) free/i.test(text) || /^Free for /i.test(text)) {
+    return { pct: 100, isFirstFree: true };
+  }
+  const match = text.match(/Save\s+(\d+(?:\.\d+)?)%/i);
+  return { pct: match ? Number(match[1]) : 0, isFirstFree: false };
 }
 
 function formatMoney(value) {
@@ -165,7 +172,7 @@ export function renderPdpSubscriptionWidget(container, initialProduct, onSelectP
 
     const activePlan = plans.find((p) => p.id === selectedPlanId) || plans[0];
     const basePrice = extractUnitPrice(currentProduct);
-    const pct = parsePercentDiscount(activePlan.summary);
+    const { pct, isFirstFree } = parseCycleOneDiscount(activePlan.summary);
     const subPrice = basePrice !== null ? Number((basePrice * (1 - pct / 100)).toFixed(2)) : null;
     const isSubscribed = selectedPlanId !== null;
 
@@ -204,13 +211,20 @@ export function renderPdpSubscriptionWidget(container, initialProduct, onSelectP
     const subTitleRow = document.createElement('div');
     subTitleRow.className = 'sub-pdp-card__title-row';
     const subTitle = document.createElement('strong');
-    if (pct > 0 && pct < 100) {
+    if (isFirstFree) {
+      subTitle.textContent = activePlan.name || 'Subscribe & Save';
+    } else if (pct > 0 && pct < 100) {
       subTitle.textContent = `Subscribe & Save ${pct}%`;
     } else {
       subTitle.textContent = activePlan.name || 'Subscribe & Save';
     }
     subTitleRow.appendChild(subTitle);
-    if (pct > 0 && pct < 100 && basePrice !== null && subPrice !== null) {
+    if (isFirstFree) {
+      const savePill = document.createElement('span');
+      savePill.className = 'sub-pdp-save-pill';
+      savePill.textContent = '1st Cycle Free';
+      subTitleRow.appendChild(savePill);
+    } else if (pct > 0 && pct < 100 && basePrice !== null && subPrice !== null) {
       const savePill = document.createElement('span');
       savePill.className = 'sub-pdp-save-pill';
       savePill.textContent = `Save ${formatMoney(basePrice - subPrice)}`;
@@ -381,20 +395,17 @@ export function renderCartItemSubscriptionSlot(ctx, _cartApi) {
       badgeWrap.className = 'sub-cart-badge-row';
       const subBadge = document.createElement('span');
       subBadge.className = 'sub-cart-badge';
-      subBadge.textContent = `↻ ${activeSelection.name}${activeSelection.summary ? ` (${activeSelection.summary})` : ''}`;
-      badgeWrap.appendChild(subBadge);
-
-      if (!subOption && !isSubOnly && sku) {
-        const oneTimeBtn = document.createElement('button');
-        oneTimeBtn.type = 'button';
-        oneTimeBtn.className = 'sub-cart-switch-link';
-        oneTimeBtn.textContent = 'Switch to one-time';
-        oneTimeBtn.addEventListener('click', () => {
-          setCartSubscriptionSelection(sku, null);
-          renderSlot(plans);
-        });
-        badgeWrap.appendChild(oneTimeBtn);
+      const { pct, isFirstFree } = parseCycleOneDiscount(activeSelection.summary);
+      const itemTotal = ctx.item?.total?.value ?? ctx.item?.price?.value;
+      if (isFirstFree && typeof itemTotal === 'number') {
+        subBadge.textContent = `↻ ${activeSelection.name} • Cycle 1: $0.00 (Free), then ${formatMoney(itemTotal)}`;
+      } else if (pct > 0 && pct < 100 && typeof itemTotal === 'number') {
+        const discounted = Number((itemTotal * (1 - pct / 100)).toFixed(2));
+        subBadge.textContent = `↻ ${activeSelection.name} • Cycle 1: ${formatMoney(discounted)} (Save ${pct}%)`;
+      } else {
+        subBadge.textContent = `↻ ${activeSelection.name}${activeSelection.summary ? ` (${activeSelection.summary})` : ''}`;
       }
+      badgeWrap.appendChild(subBadge);
 
       slotHost.appendChild(badgeWrap);
       return;
@@ -425,4 +436,84 @@ export function renderCartItemSubscriptionSlot(ctx, _cartApi) {
       renderSlot(plans);
     })
     .catch(() => {});
+}
+
+export function renderCartSubscriptionSummary(container) {
+  const box = document.createElement('div');
+  box.className = 'sub-cart-summary';
+  box.hidden = true;
+  container.appendChild(box);
+
+  const update = async (cartData) => {
+    const items = cartData?.items ?? [];
+    if (items.length === 0) {
+      box.hidden = true;
+      box.innerHTML = '';
+      return;
+    }
+
+    const skus = [...new Set(items.map((i) => i.sku).filter(Boolean))];
+    const plansBySku = new Map();
+    try {
+      const res = await fetchPlansForSkus(skus);
+      res.forEach((entry) => plansBySku.set(entry.sku, entry.plans ?? []));
+    } catch {
+      // Ignore network errors
+    }
+
+    let totalDiscount = 0;
+    let totalDueToday = 0;
+    let totalRecurring = 0;
+    let subCount = 0;
+
+    items.forEach((item) => {
+      const lineTotal = item?.total?.value ?? ((item?.price?.value ?? 0) * (item?.quantity ?? 1));
+      const itemPlans = plansBySku.get(item.sku) ?? [];
+      const isSubOnly = itemPlans.length > 0 && itemPlans.every((p) => p.purchaseOption === 'SUBSCRIPTION_ONLY');
+      const selected = getCartSubscriptionSelection(item.sku) || (isSubOnly ? itemPlans[0] : null);
+
+      if (selected) {
+        subCount += 1;
+        const { pct } = parseCycleOneDiscount(selected.summary);
+        const discount = Number(((lineTotal * pct) / 100).toFixed(2));
+        totalDiscount += discount;
+        totalDueToday += Number((lineTotal - discount).toFixed(2));
+        totalRecurring += lineTotal;
+      } else {
+        totalDueToday += lineTotal;
+      }
+    });
+
+    if (subCount === 0) {
+      box.hidden = true;
+      box.innerHTML = '';
+      return;
+    }
+
+    box.hidden = false;
+    box.innerHTML = '';
+    const title = document.createElement('h3');
+    title.className = 'sub-cart-summary__title';
+    title.textContent = 'Subscription Summary';
+    box.appendChild(title);
+
+    const rows = [
+      ['Cycle 1 Subscription Savings', `-${formatMoney(totalDiscount)}`],
+      ['Due Today (Cycle 1)', formatMoney(totalDueToday)],
+      ['Recurring Total (Cycle 2+)', formatMoney(totalRecurring)],
+    ];
+
+    rows.forEach(([label, val]) => {
+      const row = document.createElement('div');
+      row.className = 'sub-cart-summary__row';
+      const l = document.createElement('span');
+      l.textContent = label;
+      const v = document.createElement('strong');
+      v.textContent = val;
+      row.append(l, v);
+      box.appendChild(row);
+    });
+  };
+
+  return { update };
 }

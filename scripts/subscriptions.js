@@ -368,12 +368,13 @@ export function renderCartItemSubscriptionSlot(ctx, _cartApi) {
 
   const renderSlot = (plans = []) => {
     slotHost.innerHTML = '';
+    const isSubOnly = plans.length > 0 && plans.every((p) => p.purchaseOption === 'SUBSCRIPTION_ONLY');
     const activeSelection = subOption
       ? {
         id: subOption.values?.[0]?.value,
         name: subOption.values?.[0]?.label || 'Subscription',
       }
-      : storedSelection || getCartSubscriptionSelection(sku);
+      : storedSelection || getCartSubscriptionSelection(sku) || (isSubOnly ? plans[0] : null);
 
     if (activeSelection) {
       const badgeWrap = document.createElement('div');
@@ -383,7 +384,7 @@ export function renderCartItemSubscriptionSlot(ctx, _cartApi) {
       subBadge.textContent = `↻ ${activeSelection.name}${activeSelection.summary ? ` (${activeSelection.summary})` : ''}`;
       badgeWrap.appendChild(subBadge);
 
-      if (!subOption && sku) {
+      if (!subOption && !isSubOnly && sku) {
         const oneTimeBtn = document.createElement('button');
         oneTimeBtn.type = 'button';
         oneTimeBtn.className = 'sub-cart-switch-link';
@@ -412,7 +413,7 @@ export function renderCartItemSubscriptionSlot(ctx, _cartApi) {
     slotHost.appendChild(btn);
   };
 
-  if (subOption || storedSelection) {
+  if (subOption) {
     renderSlot();
     return;
   }

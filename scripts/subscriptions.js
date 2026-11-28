@@ -81,12 +81,46 @@ export function isProductSubscribable(product) {
   return val === '1' || val === 'true' || val === 'yes';
 }
 
+const SUB_STORAGE_KEY = 'accs_sub_cart_selections_v1';
+
+function readSubSelections() {
+  try {
+    return JSON.parse(window.localStorage.getItem(SUB_STORAGE_KEY) || '{}');
+  } catch {
+    return {};
+  }
+}
+
+export function setCartSubscriptionSelection(sku, plan) {
+  try {
+    const map = readSubSelections();
+    if (plan) {
+      map[sku] = { id: plan.id, name: plan.name, summary: plan.summary };
+    } else {
+      delete map[sku];
+    }
+    window.localStorage.setItem(SUB_STORAGE_KEY, JSON.stringify(map));
+  } catch {
+    // Ignore storage errors in restricted contexts.
+  }
+}
+
+export function getCartSubscriptionSelection(sku) {
+  const map = readSubSelections();
+  return map[sku] || null;
+}
+
 function extractUnitPrice(product) {
+  const pricesFinal = product?.prices?.final?.amount;
+  if (typeof pricesFinal === 'number') return pricesFinal;
+  if (typeof pricesFinal?.value === 'number') return pricesFinal.value;
   const simple = product?.price?.final?.amount?.value;
   if (typeof simple === 'number') return simple;
   const minPrice = product?.priceRange?.minimum?.final?.amount?.value;
   if (typeof minPrice === 'number') return minPrice;
-  return null;
+  const domPrice = document.querySelector('.product-details__price')?.textContent;
+  const parsed = domPrice ? Number(domPrice.replace(/[^0-9.]/g, '')) : NaN;
+  return Number.isFinite(parsed) && parsed > 0 ? parsed : null;
 }
 
 function parsePercentDiscount(summary) {
@@ -111,6 +145,7 @@ export function renderPdpSubscriptionWidget(container, initialProduct, onSelectP
 
   const notify = () => {
     const plan = plans.find((p) => p.id === selectedPlanId) || null;
+    if (currentSku) setCartSubscriptionSelection(currentSku, plan);
     onSelectPlan(selectedPlanId, plan);
   };
 
@@ -169,9 +204,13 @@ export function renderPdpSubscriptionWidget(container, initialProduct, onSelectP
     const subTitleRow = document.createElement('div');
     subTitleRow.className = 'sub-pdp-card__title-row';
     const subTitle = document.createElement('strong');
-    subTitle.textContent = pct > 0 ? `Subscribe & Save ${pct}%` : 'Subscribe & Save';
+    if (pct > 0 && pct < 100) {
+      subTitle.textContent = `Subscribe & Save ${pct}%`;
+    } else {
+      subTitle.textContent = activePlan.name || 'Subscribe & Save';
+    }
     subTitleRow.appendChild(subTitle);
-    if (pct > 0 && basePrice !== null && subPrice !== null) {
+    if (pct > 0 && pct < 100 && basePrice !== null && subPrice !== null) {
       const savePill = document.createElement('span');
       savePill.className = 'sub-pdp-save-pill';
       savePill.textContent = `Save ${formatMoney(basePrice - subPrice)}`;
@@ -316,57 +355,73 @@ export function renderPdpSubscriptionWidget(container, initialProduct, onSelectP
   };
 }
 
-export function renderCartItemSubscriptionSlot(ctx, cartApi) {
+export function renderCartItemSubscriptionSlot(ctx, _cartApi) {
+  const sku = ctx.item?.sku;
   const subOption = ctx.item?.customizable_options?.find(
     (opt) => opt.label === 'subscription_plan_id',
   );
-  if (subOption) {
-    const badgeWrap = document.createElement('div');
-    badgeWrap.className = 'sub-cart-badge-row';
-    const subBadge = document.createElement('span');
-    subBadge.className = 'sub-cart-badge';
-    const planLabel = subOption.values?.[0]?.label || subOption.values?.[0]?.value || 'Subscription';
-    subBadge.textContent = `↻ Subscribe & Save (${planLabel})`;
-    badgeWrap.appendChild(subBadge);
-    ctx.appendChild(badgeWrap);
+  const storedSelection = sku ? getCartSubscriptionSelection(sku) : null;
+
+  const slotHost = document.createElement('div');
+  slotHost.className = 'sub-cart-slot';
+  ctx.appendChild(slotHost);
+
+  const renderSlot = (plans = []) => {
+    slotHost.innerHTML = '';
+    const activeSelection = subOption
+      ? {
+        id: subOption.values?.[0]?.value,
+        name: subOption.values?.[0]?.label || 'Subscription',
+      }
+      : storedSelection || getCartSubscriptionSelection(sku);
+
+    if (activeSelection) {
+      const badgeWrap = document.createElement('div');
+      badgeWrap.className = 'sub-cart-badge-row';
+      const subBadge = document.createElement('span');
+      subBadge.className = 'sub-cart-badge';
+      subBadge.textContent = `↻ ${activeSelection.name}${activeSelection.summary ? ` (${activeSelection.summary})` : ''}`;
+      badgeWrap.appendChild(subBadge);
+
+      if (!subOption && sku) {
+        const oneTimeBtn = document.createElement('button');
+        oneTimeBtn.type = 'button';
+        oneTimeBtn.className = 'sub-cart-switch-link';
+        oneTimeBtn.textContent = 'Switch to one-time';
+        oneTimeBtn.addEventListener('click', () => {
+          setCartSubscriptionSelection(sku, null);
+          renderSlot(plans);
+        });
+        badgeWrap.appendChild(oneTimeBtn);
+      }
+
+      slotHost.appendChild(badgeWrap);
+      return;
+    }
+
+    if (plans.length === 0 || !sku) return;
+    const plan = plans[0];
+    const btn = document.createElement('button');
+    btn.type = 'button';
+    btn.className = 'sub-cart-upgrade__btn';
+    btn.textContent = `↻ Upgrade to ${plan.name} (${plan.summary})`;
+    btn.addEventListener('click', () => {
+      setCartSubscriptionSelection(sku, plan);
+      renderSlot(plans);
+    });
+    slotHost.appendChild(btn);
+  };
+
+  if (subOption || storedSelection) {
+    renderSlot();
     return;
   }
 
-  const sku = ctx.item?.sku;
   if (!sku) return;
-
-  const upgradeHost = document.createElement('div');
-  upgradeHost.className = 'sub-cart-upgrade';
-  upgradeHost.hidden = true;
-  ctx.appendChild(upgradeHost);
-
   fetchPlansForSkus([sku])
     .then((res) => {
       const plans = res.find((entry) => entry.sku === sku)?.plans ?? [];
-      if (plans.length === 0) return;
-      const plan = plans[0];
-      upgradeHost.hidden = false;
-      const btn = document.createElement('button');
-      btn.type = 'button';
-      btn.className = 'sub-cart-upgrade__btn';
-      btn.textContent = `↻ Upgrade to ${plan.name} (${plan.summary})`;
-      btn.addEventListener('click', async () => {
-        btn.disabled = true;
-        btn.textContent = 'Updating…';
-        try {
-          await cartApi.updateProductsFromCart([
-            {
-              uid: ctx.item.uid,
-              quantity: ctx.item.quantity,
-              customOptions: [{ code: 'subscription_plan_id', value: plan.id }],
-            },
-          ]);
-        } catch {
-          btn.disabled = false;
-          btn.textContent = `↻ Upgrade to ${plan.name} (${plan.summary})`;
-        }
-      });
-      upgradeHost.appendChild(btn);
+      renderSlot(plans);
     })
     .catch(() => {});
 }

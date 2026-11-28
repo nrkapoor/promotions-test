@@ -43,6 +43,13 @@
   display: inline-flex;
 }
 
+.sub-cart-badge-row {
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+
 .sub-cart-badge {
   display: inline-block;
   padding: 3px 10px;
@@ -51,6 +58,16 @@
   border-radius: 999px;
   background: #e8f3ee;
   color: #1b5e43;
+}
+
+.sub-cart-switch-link {
+  border: 0;
+  background: transparent;
+  padding: 0;
+  font-size: 12px;
+  color: var(--color-neutral-600, #555);
+  text-decoration: underline;
+  cursor: pointer;
 }
 
 .sub-cart-upgrade[hidden] {

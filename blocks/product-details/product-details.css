@@ -42,36 +42,208 @@
 .sub-pdp-widget {
   display: flex;
   flex-direction: column;
-  gap: 8px;
-  margin: 12px 0;
-  padding: 12px;
-  border: 1px solid var(--color-neutral-300, #d4d4d4);
-  border-radius: 6px;
+  gap: 10px;
+  margin: 16px 0;
 }
 
 .sub-pdp-widget[hidden] {
   display: none;
 }
 
-.sub-pdp-widget__title {
-  margin: 0;
-  font-weight: 600;
-  font-size: 14px;
-}
-
-.sub-pdp-option {
+.sub-pdp-widget__header {
   display: flex;
+  justify-content: space-between;
   align-items: center;
   gap: 8px;
-  padding: 8px;
-  border: 1px solid var(--color-neutral-200, #e5e5e5);
-  border-radius: 4px;
+}
+
+.sub-pdp-widget__title {
+  font-weight: 700;
+  font-size: 12px;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  color: var(--color-neutral-600, #555);
+}
+
+.sub-pdp-widget__hint {
+  font-size: 12px;
+  font-weight: 600;
+  color: #1b5e43;
+}
+
+.sub-pdp-card {
+  width: 100%;
+  border: 2px solid var(--color-neutral-300, #d4d4d4);
+  border-radius: 10px;
+  background: #fff;
+  overflow: hidden;
+  transition: border-color 0.15s ease, box-shadow 0.15s ease;
+}
+
+.sub-pdp-card.is-selected {
+  border-color: #1b5e43;
+  box-shadow: 0 4px 16px rgb(27 94 67 / 8%);
+}
+
+.sub-pdp-card--onetime {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  padding: 14px 16px;
+  text-align: left;
   cursor: pointer;
 }
 
-.sub-pdp-option.is-selected {
-  border-color: var(--color-brand-500, #3b63fb);
-  background: var(--color-neutral-100, #f5f7ff);
+.sub-pdp-card--onetime.is-selected {
+  border-color: #1f1a17;
+}
+
+.sub-pdp-card__header {
+  width: 100%;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  padding: 14px 16px;
+  border: 0;
+  background: transparent;
+  text-align: left;
+  cursor: pointer;
+}
+
+.sub-pdp-card.is-selected .sub-pdp-card__header {
+  background: rgb(232 243 238 / 55%);
+}
+
+.sub-pdp-card__left {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
+
+.sub-pdp-radio {
+  width: 18px;
+  height: 18px;
+  border-radius: 999px;
+  border: 2px solid #9ca3af;
+  flex-shrink: 0;
+  position: relative;
+}
+
+.sub-pdp-radio.is-checked {
+  border-color: #1b5e43;
+}
+
+.sub-pdp-radio.is-checked::after {
+  content: '';
+  position: absolute;
+  inset: 3px;
+  border-radius: 999px;
+  background: #1b5e43;
+}
+
+.sub-pdp-radio.is-checked.is-dark {
+  border-color: #1f1a17;
+}
+
+.sub-pdp-radio.is-checked.is-dark::after {
+  background: #1f1a17;
+}
+
+.sub-pdp-card__title-row {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  flex-wrap: wrap;
+}
+
+.sub-pdp-save-pill {
+  padding: 2px 8px;
+  border-radius: 999px;
+  font-size: 11px;
+  font-weight: 700;
+  background: #1b5e43;
+  color: #fff;
+}
+
+.sub-pdp-card__subtitle {
+  font-size: 12px;
+  color: var(--color-neutral-600, #6b625b);
+  margin-top: 2px;
+}
+
+.sub-pdp-card__price {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-end;
+  flex-shrink: 0;
+}
+
+.sub-pdp-price-strike {
+  font-size: 12px;
+  text-decoration: line-through;
+  color: var(--color-neutral-500, #888);
+}
+
+.sub-pdp-price-sub {
+  font-size: 16px;
+  font-weight: 700;
+  color: #1b5e43;
+}
+
+.sub-pdp-price-regular {
+  font-size: 15px;
+  font-weight: 700;
+  color: #1f1a17;
+}
+
+.sub-pdp-card__body {
+  padding: 14px 16px;
+  border-top: 1px solid rgb(27 94 67 / 15%);
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+
+.sub-pdp-freq-label {
+  font-size: 12px;
+  font-weight: 700;
+  color: #1f1a17;
+}
+
+.sub-pdp-freq-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
+  gap: 8px;
+}
+
+.sub-pdp-freq-btn {
+  padding: 8px 10px;
+  border-radius: 8px;
+  border: 1px solid var(--color-neutral-300, #d4d4d4);
+  background: #fff;
+  font-size: 12px;
+  font-weight: 600;
+  text-align: left;
+  cursor: pointer;
+}
+
+.sub-pdp-freq-btn.is-active {
+  border-color: #1b5e43;
+  background: #e8f3ee;
+  color: #1b5e43;
+}
+
+.sub-pdp-perks {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  font-size: 12px;
+  color: #1f1a17;
 }
 
 /* PDP borders + hover focus visuals */

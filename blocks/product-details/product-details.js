@@ -60,10 +60,13 @@ function isProductPrerendered() {
 }
 
 // Function to update the Add to Cart button text
-function updateAddToCartButtonText(addToCartInstance, inCart, labels) {
-  const buttonText = inCart
+function updateAddToCartButtonText(addToCartInstance, inCart, labels, subscriptionPlan) {
+  let buttonText = inCart
     ? labels.Global?.UpdateProductInCart
     : labels.Global?.AddProductToCart;
+  if (!inCart && subscriptionPlan) {
+    buttonText = 'Add Subscription to Cart';
+  }
   if (addToCartInstance) {
     addToCartInstance.setProps((prev) => ({
       ...prev,
@@ -99,6 +102,8 @@ export default async function decorate(block) {
   // State to track if the current product/variant is out of stock
   let isOutOfStock = false;
   let selectedSubscriptionPlanId = null;
+  let selectedSubscriptionPlan = null;
+  let addToCart = null;
 
   // Layout
   const fragment = document.createRange().createContextualFragment(`
@@ -151,8 +156,12 @@ export default async function decorate(block) {
   block.replaceChildren(fragment);
 
   if ($subscriptions) {
-    const subWidget = renderPdpSubscriptionWidget($subscriptions, product, (planId) => {
+    const subWidget = renderPdpSubscriptionWidget($subscriptions, product, (planId, plan) => {
       selectedSubscriptionPlanId = planId;
+      selectedSubscriptionPlan = plan;
+      if (addToCart) {
+        updateAddToCartButtonText(addToCart, isUpdateMode, labels, selectedSubscriptionPlan);
+      }
     });
     events.on('pdp/data', (data) => {
       if (data?.sku) subWidget.updateProduct(data);
@@ -268,7 +277,7 @@ export default async function decorate(block) {
   ]);
 
   // Configuration – Button - Add to Cart
-  const addToCart = await UI.render(Button, {
+  addToCart = await UI.render(Button, {
     children: labels.Global?.AddProductToCart,
     icon: h(Icon, { source: 'Cart' }),
     onClick: async () => {
@@ -351,7 +360,7 @@ export default async function decorate(block) {
         });
       } finally {
         // Reset button text using the helper function which respects the current mode
-        updateAddToCartButtonText(addToCart, isUpdateMode, labels);
+        updateAddToCartButtonText(addToCart, isUpdateMode, labels, selectedSubscriptionPlan);
         // Re-enable button, unless the current variant is out of stock
         addToCart.setProps((prev) => ({
           ...prev,
@@ -427,7 +436,7 @@ export default async function decorate(block) {
       isUpdateMode = itemIsInCart;
 
       // Update button text based on whether the item is in the cart
-      updateAddToCartButtonText(addToCart, itemIsInCart, labels);
+      updateAddToCartButtonText(addToCart, itemIsInCart, labels, selectedSubscriptionPlan);
     },
     { eager: true },
   );

@@ -35,6 +35,7 @@ import '../../scripts/initializers/wishlist.js';
 import { loadCSS, readBlockConfig } from '../../scripts/aem.js';
 import { fetchPlaceholders, rootLink, getProductLink } from '../../scripts/commerce.js';
 import { orderSummaryPromotions, renderItemPromotions, renderCouponSlot } from '../../scripts/components/cart-discounts/promotion-display.js';
+import { renderCartItemSubscriptionSlot } from '../../scripts/subscriptions.js';
 
 export default async function decorate(block) {
   // Configuration
@@ -204,16 +205,7 @@ export default async function decorate(block) {
         },
 
         Footer: (ctx) => {
-          const subOption = ctx.item?.customizable_options?.find(
-            (opt) => opt.label === 'subscription_plan_id',
-          );
-          if (subOption) {
-            const subBadge = document.createElement('div');
-            subBadge.className = 'sub-cart-badge';
-            const planLabel = subOption.values?.[0]?.label || subOption.values?.[0]?.value || 'Subscription';
-            subBadge.textContent = `Subscribe & Save (${planLabel})`;
-            ctx.appendChild(subBadge);
-          }
+          renderCartItemSubscriptionSlot(ctx, Cart);
 
           // Edit Link
           if (ctx.item?.itemType === 'ConfigurableCartItem' && enableUpdatingProduct === 'true') {

@@ -81,15 +81,38 @@ export function isProductSubscribable(product) {
   return val === '1' || val === 'true' || val === 'yes';
 }
 
+function extractUnitPrice(product) {
+  const simple = product?.price?.final?.amount?.value;
+  if (typeof simple === 'number') return simple;
+  const minPrice = product?.priceRange?.minimum?.final?.amount?.value;
+  if (typeof minPrice === 'number') return minPrice;
+  return null;
+}
+
+function parsePercentDiscount(summary) {
+  const match = String(summary || '').match(/Save\s+(\d+(?:\.\d+)?)%/i);
+  return match ? Number(match[1]) : 0;
+}
+
+function formatMoney(value) {
+  return `$${Number(value).toFixed(2)}`;
+}
+
 export function renderPdpSubscriptionWidget(container, initialProduct, onSelectPlan) {
   let selectedPlanId = null;
   let plans = [];
+  let currentProduct = initialProduct || null;
   let currentSku = initialProduct?.sku || '';
 
   const wrapper = document.createElement('div');
   wrapper.className = 'sub-pdp-widget';
   wrapper.hidden = true;
   container.appendChild(wrapper);
+
+  const notify = () => {
+    const plan = plans.find((p) => p.id === selectedPlanId) || null;
+    onSelectPlan(selectedPlanId, plan);
+  };
 
   const render = () => {
     if (plans.length === 0) {
@@ -102,57 +125,163 @@ export function renderPdpSubscriptionWidget(container, initialProduct, onSelectP
     const isSubOnly = plans.every((p) => p.purchaseOption === 'SUBSCRIPTION_ONLY');
     if (isSubOnly && !selectedPlanId) {
       selectedPlanId = plans[0].id;
-      onSelectPlan(selectedPlanId);
+      notify();
     }
+
+    const activePlan = plans.find((p) => p.id === selectedPlanId) || plans[0];
+    const basePrice = extractUnitPrice(currentProduct);
+    const pct = parsePercentDiscount(activePlan.summary);
+    const subPrice = basePrice !== null ? Number((basePrice * (1 - pct / 100)).toFixed(2)) : null;
+    const isSubscribed = selectedPlanId !== null;
 
     wrapper.innerHTML = '';
-    const title = document.createElement('p');
-    title.className = 'sub-pdp-widget__title';
-    title.textContent = 'Purchase Options';
-    wrapper.appendChild(title);
 
-    if (!isSubOnly) {
-      const oneTimeLabel = document.createElement('label');
-      oneTimeLabel.className = `sub-pdp-option ${selectedPlanId === null ? 'is-selected' : ''}`;
-      const radio = document.createElement('input');
-      radio.type = 'radio';
-      radio.name = `sub-plan-${currentSku}`;
-      radio.checked = selectedPlanId === null;
-      radio.addEventListener('change', () => {
-        selectedPlanId = null;
-        onSelectPlan(null);
+    const headerRow = document.createElement('div');
+    headerRow.className = 'sub-pdp-widget__header';
+    const title = document.createElement('span');
+    title.className = 'sub-pdp-widget__title';
+    title.textContent = 'Select Purchase Option';
+    const hint = document.createElement('span');
+    hint.className = 'sub-pdp-widget__hint';
+    hint.textContent = 'Flexible delivery • Cancel anytime';
+    headerRow.append(title, hint);
+    wrapper.appendChild(headerRow);
+
+    const subCard = document.createElement('div');
+    subCard.className = `sub-pdp-card ${isSubscribed ? 'is-selected' : ''}`;
+
+    const subHeader = document.createElement('button');
+    subHeader.type = 'button';
+    subHeader.className = 'sub-pdp-card__header';
+    subHeader.addEventListener('click', () => {
+      if (!selectedPlanId) {
+        selectedPlanId = plans[0].id;
+        notify();
         render();
-      });
-      const text = document.createElement('span');
-      text.textContent = 'One-time purchase';
-      oneTimeLabel.append(radio, text);
-      wrapper.appendChild(oneTimeLabel);
+      }
+    });
+
+    const subLeft = document.createElement('div');
+    subLeft.className = 'sub-pdp-card__left';
+    const radioDot = document.createElement('span');
+    radioDot.className = `sub-pdp-radio ${isSubscribed ? 'is-checked' : ''}`;
+    const subTextWrap = document.createElement('div');
+    const subTitleRow = document.createElement('div');
+    subTitleRow.className = 'sub-pdp-card__title-row';
+    const subTitle = document.createElement('strong');
+    subTitle.textContent = pct > 0 ? `Subscribe & Save ${pct}%` : 'Subscribe & Save';
+    subTitleRow.appendChild(subTitle);
+    if (pct > 0 && basePrice !== null && subPrice !== null) {
+      const savePill = document.createElement('span');
+      savePill.className = 'sub-pdp-save-pill';
+      savePill.textContent = `Save ${formatMoney(basePrice - subPrice)}`;
+      subTitleRow.appendChild(savePill);
+    }
+    const subDesc = document.createElement('div');
+    subDesc.className = 'sub-pdp-card__subtitle';
+    subDesc.textContent = 'Auto-delivered on your schedule • Cancel anytime';
+    subTextWrap.append(subTitleRow, subDesc);
+    subLeft.append(radioDot, subTextWrap);
+
+    const subRight = document.createElement('div');
+    subRight.className = 'sub-pdp-card__price';
+    if (basePrice !== null && subPrice !== null) {
+      if (subPrice < basePrice) {
+        const strike = document.createElement('span');
+        strike.className = 'sub-pdp-price-strike';
+        strike.textContent = formatMoney(basePrice);
+        subRight.appendChild(strike);
+      }
+      const finalEl = document.createElement('span');
+      finalEl.className = 'sub-pdp-price-sub';
+      finalEl.textContent = formatMoney(subPrice);
+      subRight.appendChild(finalEl);
     }
 
-    plans.forEach((plan) => {
-      const label = document.createElement('label');
-      label.className = `sub-pdp-option ${selectedPlanId === plan.id ? 'is-selected' : ''}`;
-      const radio = document.createElement('input');
-      radio.type = 'radio';
-      radio.name = `sub-plan-${currentSku}`;
-      radio.checked = selectedPlanId === plan.id;
-      radio.addEventListener('change', () => {
-        selectedPlanId = plan.id;
-        onSelectPlan(plan.id);
+    subHeader.append(subLeft, subRight);
+    subCard.appendChild(subHeader);
+
+    if (isSubscribed) {
+      const body = document.createElement('div');
+      body.className = 'sub-pdp-card__body';
+
+      const freqLabel = document.createElement('div');
+      freqLabel.className = 'sub-pdp-freq-label';
+      freqLabel.textContent = 'Delivery Frequency';
+      body.appendChild(freqLabel);
+
+      const freqGrid = document.createElement('div');
+      freqGrid.className = 'sub-pdp-freq-grid';
+      plans.forEach((plan) => {
+        const btn = document.createElement('button');
+        btn.type = 'button';
+        btn.className = `sub-pdp-freq-btn ${selectedPlanId === plan.id ? 'is-active' : ''}`;
+        btn.textContent = `${plan.name} (${plan.summary})`;
+        btn.addEventListener('click', () => {
+          selectedPlanId = plan.id;
+          notify();
+          render();
+        });
+        freqGrid.appendChild(btn);
+      });
+      body.appendChild(freqGrid);
+
+      const perks = document.createElement('ul');
+      perks.className = 'sub-pdp-perks';
+      [
+        'Skip, pause, or cancel anytime in 1 click—no phone calls',
+        '3-day advance reminder before every recurring charge',
+      ].forEach((perk) => {
+        const li = document.createElement('li');
+        li.textContent = `✓ ${perk}`;
+        perks.appendChild(li);
+      });
+      body.appendChild(perks);
+
+      subCard.appendChild(body);
+    }
+
+    wrapper.appendChild(subCard);
+
+    if (!isSubOnly) {
+      const oneTimeCard = document.createElement('button');
+      oneTimeCard.type = 'button';
+      oneTimeCard.className = `sub-pdp-card sub-pdp-card--onetime ${!isSubscribed ? 'is-selected' : ''}`;
+      oneTimeCard.addEventListener('click', () => {
+        selectedPlanId = null;
+        notify();
         render();
       });
-      const text = document.createElement('span');
-      const strong = document.createElement('strong');
-      strong.textContent = plan.name;
-      const small = document.createElement('small');
-      small.textContent = ` — ${plan.summary}`;
-      text.append(strong, small);
-      label.append(radio, text);
-      wrapper.appendChild(label);
-    });
+
+      const otLeft = document.createElement('div');
+      otLeft.className = 'sub-pdp-card__left';
+      const otDot = document.createElement('span');
+      otDot.className = `sub-pdp-radio ${!isSubscribed ? 'is-checked is-dark' : ''}`;
+      const otText = document.createElement('div');
+      const otTitle = document.createElement('strong');
+      otTitle.textContent = 'One-Time Purchase';
+      const otSub = document.createElement('div');
+      otSub.className = 'sub-pdp-card__subtitle';
+      otSub.textContent = 'Single shipment • Standard shipping rates apply';
+      otText.append(otTitle, otSub);
+      otLeft.append(otDot, otText);
+
+      const otRight = document.createElement('div');
+      otRight.className = 'sub-pdp-card__price';
+      if (basePrice !== null) {
+        const otPrice = document.createElement('span');
+        otPrice.className = 'sub-pdp-price-regular';
+        otPrice.textContent = formatMoney(basePrice);
+        otRight.appendChild(otPrice);
+      }
+
+      oneTimeCard.append(otLeft, otRight);
+      wrapper.appendChild(oneTimeCard);
+    }
   };
 
   const loadForProduct = (product) => {
+    currentProduct = product || null;
     const sku = product?.sku;
     if (!sku) return;
     currentSku = sku;
@@ -160,7 +289,7 @@ export function renderPdpSubscriptionWidget(container, initialProduct, onSelectP
     if (subscribableAttr === false) {
       plans = [];
       selectedPlanId = null;
-      onSelectPlan(null);
+      notify();
       render();
       return;
     }
@@ -185,4 +314,59 @@ export function renderPdpSubscriptionWidget(container, initialProduct, onSelectP
     updateProduct: loadForProduct,
     getSelectedPlanId: () => selectedPlanId,
   };
+}
+
+export function renderCartItemSubscriptionSlot(ctx, cartApi) {
+  const subOption = ctx.item?.customizable_options?.find(
+    (opt) => opt.label === 'subscription_plan_id',
+  );
+  if (subOption) {
+    const badgeWrap = document.createElement('div');
+    badgeWrap.className = 'sub-cart-badge-row';
+    const subBadge = document.createElement('span');
+    subBadge.className = 'sub-cart-badge';
+    const planLabel = subOption.values?.[0]?.label || subOption.values?.[0]?.value || 'Subscription';
+    subBadge.textContent = `↻ Subscribe & Save (${planLabel})`;
+    badgeWrap.appendChild(subBadge);
+    ctx.appendChild(badgeWrap);
+    return;
+  }
+
+  const sku = ctx.item?.sku;
+  if (!sku) return;
+
+  const upgradeHost = document.createElement('div');
+  upgradeHost.className = 'sub-cart-upgrade';
+  upgradeHost.hidden = true;
+  ctx.appendChild(upgradeHost);
+
+  fetchPlansForSkus([sku])
+    .then((res) => {
+      const plans = res.find((entry) => entry.sku === sku)?.plans ?? [];
+      if (plans.length === 0) return;
+      const plan = plans[0];
+      upgradeHost.hidden = false;
+      const btn = document.createElement('button');
+      btn.type = 'button';
+      btn.className = 'sub-cart-upgrade__btn';
+      btn.textContent = `↻ Upgrade to ${plan.name} (${plan.summary})`;
+      btn.addEventListener('click', async () => {
+        btn.disabled = true;
+        btn.textContent = 'Updating…';
+        try {
+          await cartApi.updateProductsFromCart([
+            {
+              uid: ctx.item.uid,
+              quantity: ctx.item.quantity,
+              customOptions: [{ code: 'subscription_plan_id', value: plan.id }],
+            },
+          ]);
+        } catch {
+          btn.disabled = false;
+          btn.textContent = `↻ Upgrade to ${plan.name} (${plan.summary})`;
+        }
+      });
+      upgradeHost.appendChild(btn);
+    })
+    .catch(() => {});
 }

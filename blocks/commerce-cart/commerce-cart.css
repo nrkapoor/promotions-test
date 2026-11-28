@@ -45,12 +45,31 @@
 
 .sub-cart-badge {
   display: inline-block;
-  padding: 2px 8px;
+  padding: 3px 10px;
   font-size: 12px;
   font-weight: 600;
-  border-radius: 4px;
-  background: var(--color-neutral-200, #eef2ff);
-  color: var(--color-brand-700, #2346d6);
+  border-radius: 999px;
+  background: #e8f3ee;
+  color: #1b5e43;
+}
+
+.sub-cart-upgrade[hidden] {
+  display: none;
+}
+
+.sub-cart-upgrade__btn {
+  padding: 6px 10px;
+  border-radius: 6px;
+  border: 1px dashed #1b5e43;
+  background: #f6fbf8;
+  color: #1b5e43;
+  font-size: 12px;
+  font-weight: 600;
+  cursor: pointer;
+}
+
+.sub-cart-upgrade__btn:hover {
+  background: #e8f3ee;
 }
 
 .cart__notification .dropin-in-line-alert__content {
